@@ -7,6 +7,20 @@ type GameState = (Player, Maybe Coord, [[SubBoard]])
 -- GameState should be a type, not a variable type def
 
 -- functions for
-  -- is it complete
-  -- making a move
-  -- determining what the next board is 
+  -- winner of a game state (GameState -> Winner) Joseph
+  -- update game state (GameState -> Move -> GameState) Gaya
+  -- legal moves (Game -> [Move]) Jorge
+  -- pretty show fuction (Game -> String) Blake
+{-
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+------------|-------------|------------
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+------------|-------------|------------
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+-}
