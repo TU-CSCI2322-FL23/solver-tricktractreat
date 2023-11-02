@@ -6,6 +6,8 @@ type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD sec
 type GameState = (Player, Maybe Coord, [[SubBoard]])
 -- GameState should be a type, not a variable type def
 
+-- TEST
+
 -- functions for
   -- winner of a game state (GameState -> Winner) Joseph
   -- update game state (GameState -> Move -> GameState) Gaya
