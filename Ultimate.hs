@@ -6,6 +6,12 @@ type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD sec
 type GameState = (Player, Maybe Coord, [[SubBoard]])
 -- findlegalmoves branch
 
+findLegalMoves :: GameState -> [BigMove]
+findLegalMoves (player, Just next, board) = undefined
+
+
+
+
 -- functions for
   -- winner of a game state (GameState -> Winner) Joseph
   -- update game state (GameState -> Move -> GameState) Gaya
