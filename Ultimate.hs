@@ -6,10 +6,17 @@ type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD sec
 type GameState = (Player, Maybe Coord, [[SubBoard]])
 -- findlegalmoves branch
 
-findLegalMoves :: GameState -> [BigMove]
-findLegalMoves (player, Just next, board) = undefined
+--e.g. findLegalMoves (X, Just (2,3), ...)
 
 
+-- findLegalMoves :: GameState -> [BigMove]
+findLegalMoves :: GameState -> [SubBoard]
+findLegalMoves (player, Just (x, y), board) = 
+  let find = zip [1..] board
+  in head [subBoard | (idx, subBoard) <- find, idx == x]
+
+findLegalSubBoardMoves :: Player -> [SubBoard] -> [SubBoard]
+findLegalSubBoardMoves player subBoard = undefined 
 
 
 -- functions for
@@ -17,6 +24,7 @@ findLegalMoves (player, Just next, board) = undefined
   -- update game state (GameState -> Move -> GameState) Gaya
   -- legal moves (Game -> [Move]) Jorge
   -- pretty show fuction (Game -> String) Blake
+
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
