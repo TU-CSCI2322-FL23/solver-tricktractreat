@@ -10,14 +10,22 @@ type GameState = (Player, Maybe Coord, [[SubBoard]])
 
 
 -- findLegalMoves :: GameState -> [BigMove]
-findLegalMoves :: GameState -> [SubBoard]
+findLegalMoves :: GameState -> SubBoard
 findLegalMoves (player, Just (x, y), board) = 
-  let find = zip [1..] board
-  in head [subBoard | (idx, subBoard) <- find, idx == x]
+  let rows = head [boardRows | (rowIdx, boardRows) <- (zip [1..] board), rowIdx == y]
+      subBoard = head [subBoard | (subIdx, subBoard) <- (zip [1..] rows), subIdx == x]
+  in subBoard 
+  -- in findLegalSubBoardMoves player subBoard
 
-findLegalSubBoardMoves :: Player -> [SubBoard] -> [SubBoard]
-findLegalSubBoardMoves player subBoard = undefined 
+-- findLegalSubBoardMoves :: Player -> SubBoard -> [Coord]
+findLegalSubBoardMoves :: Player -> SubBoard -> String
+findLegalSubBoardMoves player subBoard@(InProgress lst) = undefined
+  -- map (\x -> map show x) lst
 
+
+
+-- x = map (\tup -> ((3,2), tup)) [(1,3), (2,2), (2,1)] -- Making BigMove 
+y = InProgress [[Just X, Just O, Just X], [Just O, Nothing, Just X]] -- SubBoard example
 
 -- functions for
   -- winner of a game state (GameState -> Winner) Joseph
