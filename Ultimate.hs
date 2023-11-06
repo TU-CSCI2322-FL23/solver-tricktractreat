@@ -37,7 +37,11 @@ findSubBoard (x, y) bigBoard =
 
 -- Given a sub board, gives coord values to each spot and returns coords of spots that have no plays in them
 findLegalSubBoardMoves :: SubBoard -> [Coord]
-findLegalSubBoardMoves (InProgress lst) = [(x, y) | (row, x) <- zip lst [1..], (play, y) <- zip row [1..], play == Nothing]
+findLegalSubBoardMoves subBoard = [coord | (coord, play) <- assignCoordinates subBoard, play == Nothing]
+
+-- Function to assign coordinate to each spot in a subboard. General use
+assignCoordinates :: SubBoard -> [(Coord, Maybe Player)]
+assignCoordinates (InProgress lst) = [((x, y), play) | (row, x) <- zip lst [1..], (play, y) <- zip row [1..]]
 
 -- functions for
   -- winner of a game state (GameState -> Winner) Joseph
