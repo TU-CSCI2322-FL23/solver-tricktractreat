@@ -9,24 +9,17 @@ type GameState = (Player, Maybe Coord, [[SubBoard]])
 
 findLegalMoves :: GameState -> [BigMove]
 
+-- Finds sub board and returns all legal moves in it. If it is finished, calls function above
+findLegalMoves (player, Just subCoords, board) = 
+  let subBoard = findSubBoard subCoords board
+  in if isInProgress subBoard
+     then makeBigMove subCoords (findLegalSubBoardMoves subBoard) 
+     else findLegalMoves (player, Nothing, board)
+
 -- When no next coord is specified, finds all in progress boards and returns all legal moves
 findLegalMoves (player, Nothing, board) = 
   let labeledValidMoves = [((x, y), findLegalSubBoardMoves subBoard) | (row, x) <- zip board [1..], (subBoard, y) <- zip row [1..], isInProgress subBoard]
   in concat $ map (\(coord, list) -> makeBigMove coord list) labeledValidMoves
-
--- Finds sub board and returns all legal moves in it. If it is finished, calls function above
-findLegalMoves (player, Just subCoords, board) = 
-  let subBoard = findSubBoard subCoords board
-  in case subBoard of 
-    InProgress _ -> makeBigMove subCoords (findLegalSubBoardMoves subBoard) 
-    Finished _ -> findLegalMoves (player, Nothing, board)
-
-makeBigMove :: Coord -> [Coord] -> [BigMove]
-makeBigMove x ys = [(x, y) | y <- ys]
-
-isInProgress :: SubBoard -> Bool
-isInProgress (InProgress _) = True
-isInProgress _ = False
 
 -- Finds a sub board given a coord. Isolates row of boards given y coord, then picks the right one based on x coord. 
 -- Will likely rewrite
@@ -38,6 +31,14 @@ findSubBoard (x, y) bigBoard =
 -- Given a sub board, gives coord values to each spot and returns coords of spots that have no plays in them
 findLegalSubBoardMoves :: SubBoard -> [Coord]
 findLegalSubBoardMoves subBoard = [coord | (coord, play) <- assignCoordinates subBoard, play == Nothing]
+
+-- Helpers
+makeBigMove :: Coord -> [Coord] -> [BigMove]
+makeBigMove x ys = [(x, y) | y <- ys]
+
+isInProgress :: SubBoard -> Bool
+isInProgress (InProgress _) = True
+isInProgress _ = False
 
 -- Function to assign coordinate to each spot in a subboard. General use
 assignCoordinates :: SubBoard -> [(Coord, Maybe Player)]
