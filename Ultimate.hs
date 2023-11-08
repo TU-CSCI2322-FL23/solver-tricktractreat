@@ -50,7 +50,7 @@ assignCoordinates (InProgress lst) = [((x, y), play) | (row, x) <- zip lst [1..]
 
 updateGameState :: GameState -> BigMove -> GameState
 updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, innerY)) =
-  if (not $ move `elem` (legalMoves game))
+  if (not $ move `elem` (findLegalMoves game))
   then error "Invalid move"
   else if (finished && p == X)
   then (O, Nothing, changeBoard (outerX, outerY) (innerX, innerY) X boards)
