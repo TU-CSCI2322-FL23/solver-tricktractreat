@@ -33,8 +33,8 @@ prettyPrint (player, next, board) =
       showNext = case next of Nothing -> "They may play anywhere."
                               Just x  -> "They must play in sub-board " ++ show x
 
-      showSmallRow i (Finished w) = case w of Champ p -> unwords $ map showCell (replicate 3 (Just p))
-                                              Tie     -> "[-] [-] [-]"
+      showSmallRow i (Finished (Champ p)) = unwords $ map showCell (replicate 3 (Just p))
+      showSmallRow i (Finished (Tie)) = "[-] [-] [-]"
       showSmallRow 1 (InProgress [top, mid, bottom]) = unwords $ map showCell top
       showSmallRow 2 (InProgress [top, mid, bottom]) = unwords $ map showCell mid
       showSmallRow 3 (InProgress [top, mid, bottom]) = unwords $ map showCell bottom
@@ -45,9 +45,8 @@ prettyPrint (player, next, board) =
       showBigRow [ls, cs, rs] = 
           unlines [showSmallRow i ls ++ " | " ++ showSmallRow  i cs ++ " | " ++ showSmallRow i rs | i <- [1..3] ]
 
-      showBoard [] = ""
-      showBoard (x:xs) = showBigRow x ++ hline ++ "\n" ++ showBoard xs
+      showBoard = unlines [showBigRow row | row <- board]
 
-  in showTurn ++ "\n" ++ showNext ++ "\n" ++ showBoard board
+  in showTurn ++ "\n" ++ showNext ++ "\n" ++ showBoard
 
 hline = "------------|-------------|------------"
