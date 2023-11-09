@@ -52,16 +52,12 @@ updateGameState :: GameState -> BigMove -> GameState
 updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, innerY)) =
   if (not $ move `elem` (findLegalMoves game))
   then error "Invalid move"
-  else if (finished && p == X)
-  then (O, Nothing, changeBoard (outerX, outerY) (innerX, innerY) X boards)
-  else if (finished && p == O)
-  then (X, Nothing, changeBoard (outerX, outerY) (innerX, innerY) O boards)
-  else if (p == X)
-  then (O, Just (innerX, innerY), changeBoard (outerX, outerY) (innerX, innerY) X boards)
-  else (X, Just (innerX, innerY), changeBoard (outerX, outerY) (innerX, innerY) O boards)
-  where subBoard = findSubBoard (outerX, outerY) boards
-        finished = not $ isInProgress subBoard
-
+  else (opponent p, nextMove, nextBoard)
+  where finished = not $ isInProgress $ findSubBoard (outerX, outerY) boards
+        nextMove = if finished then Nothing else Just (innerX, innerY)
+        nextBoard = changeBoard (outerX, outerY) (innerX, innerY) p boards
+opponent X = O 
+opponent O = X
 
 -- this could use rewriting w/ zips and pattern matching, so it's a bit ugly atm
 -- sorry guys :(
@@ -100,3 +96,27 @@ changeIndex index val (x:xs) = x:(changeIndex (index - 1) val xs)
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 -}
+prettyPrint :: GameState -> String
+prettyPrint (player, next, board) =
+  let showTurn = "It is " ++ show player ++ "'s turn."
+      showNext = case next of Nothing -> "They may play anywhere."
+                              Just x  -> "They must play in sub-board " ++ show x
+
+      showSmallRow i (Finished w) = case w of Champ p -> unwords $ map showCell (replicate 3 (Just p))
+                                              Tie     -> "[-] [-] [-]"
+      showSmallRow 1 (InProgress [top, mid, bottom]) = unwords $ map showCell top
+      showSmallRow 2 (InProgress [top, mid, bottom]) = unwords $ map showCell mid
+      showSmallRow 3 (InProgress [top, mid, bottom]) = unwords $ map showCell bottom
+
+      showCell Nothing = "[ ]"
+      showCell (Just p) = "[" ++ show p ++ "]"
+
+      showBigRow [ls, cs, rs] = 
+          unlines [showSmallRow i ls ++ " | " ++ showSmallRow  i cs ++ " | " ++ showSmallRow i rs | i <- [1..3] ]
+
+      showBoard [] = ""
+      showBoard (x:xs) = showBigRow x ++ hline ++ "\n" ++ showBoard xs
+
+  in showTurn ++ "\n" ++ showNext ++ "\n" ++ showBoard board
+
+hline = "------------|-------------|------------"
