@@ -1,7 +1,7 @@
 import Ultimate
 
-emptySubBoard, winnerXSubBoard, winnerOSubBoard :: SubBoard
-emptySubBoard   = replicate 3 (replicate 3 Nothing)
+--emptySubBoard, allXs, allOs :: SubBoard
+emptySubBoard  = replicate 3 (replicate 3 Nothing)
 allXs = replicate 3 (replicate 3 (Just X))
 allOs = replicate 3 (replicate 3 (Just O))
 tiedSubBoard = replicate 3 (replicate 3 "-")
