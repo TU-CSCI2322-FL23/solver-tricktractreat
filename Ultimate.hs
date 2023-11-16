@@ -1,5 +1,6 @@
 module Ultimate where
 import Data.Maybe
+import Data.List
 
 data Player = X | O deriving (Show, Eq)
 data Winner = Champ Player | Tie deriving (Show, Eq)
@@ -8,6 +9,7 @@ type Coord = (Int, Int)
 type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD second is for the spot on the subboard
 type GameState = (Player, Maybe Coord, [[SubBoard]])
 
+-- FIND LEGAL MOVES AND HELPERS ETC.
 findLegalMoves :: GameState -> [BigMove]
 
 -- Finds sub board and returns all legal moves in it. If it is finished, calls function below
@@ -54,6 +56,7 @@ isInProgress :: SubBoard -> Bool
 isInProgress (InProgress _) = True
 isInProgress _ = False
 
+-- UPDATE GAME STATE
 updateGameState :: GameState -> BigMove -> GameState
 updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, innerY)) =
   if (not $ move `elem` (findLegalMoves game))
@@ -69,8 +72,6 @@ updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, i
 opponent X = O 
 opponent O = X
 
--- this could use rewriting w/ zips and pattern matching, so it's a bit ugly atm
--- sorry guys :(
 changeBoard :: Coord -> Coord -> Player -> [[SubBoard]] -> [[SubBoard]]
 changeBoard (outerX, 1) (innerX, innerY) val (l:ls) = (changeSubBoardRow outerX (innerX, innerY) val l):ls
 changeBoard (outerX, outerY) (innerX, innerY) val (l:ls) = l:(changeBoard (outerX, outerY - 1) (innerX, innerY) val ls)
@@ -90,8 +91,90 @@ changeIndex :: Int -> Player -> [Maybe Player] -> [Maybe Player]
 changeIndex 1 val (x:xs) = (Just val):xs
 changeIndex index val (x:xs) = x:(changeIndex (index - 1) val xs)
 
-  -- legal moves (Game -> [Move]) Jorge
-  -- pretty show function (Game -> String) Blake
+-- CHECK WINNER HELPERS ETC.
+winnerB :: GameState -> Maybe Winner
+winnerB (p, mc, sbs) =
+  case checkWinner (InProgress [hasChamp s | s <- sbs]) of
+    Just outcome -> Just outcome
+    Nothing -> if or [isInProgress s| s <- concat sbs] then Nothing else Just Tie
+  
+hasChamp :: [SubBoard] -> [Maybe Player]
+hasChamp [] = []
+hasChamp (sb:sbs) = [congrad (checkWinner sb)] ++ (hasChamp sbs)
+
+
+congrad :: Maybe Winner -> Maybe Player
+congrad Nothing = Nothing
+congrad (Just Tie) = Nothing
+congrad (Just (Champ x)) = Just x
+
+
+  --let
+  --winLine = [l |l <-lineLst, (checkLine l) /= Nothing]
+  --in if winLine == [] then Nothing else Just (checkLine (head winLine)) 
+
+--missing case for full board tie game. Functionality not confirmed.XX
+
+-- checkLine :: Line -> SubBoard -> Maybe Winner
+-- checkLine (ci:ca:co) sb  = undefined
+-- if ci == Finished x && ci == ca == co then Just x else Nothing
+--fix Logic?XXXXX
+
+
+checkWinner :: SubBoard -> Maybe Winner
+checkWinner (Finished outcome) = Just outcome
+checkWinner (InProgress sb) =
+  case (checkDia sb, checkRow sb, checkCol sb) of
+       (Just x, _, _) -> Just (Champ x)
+       (_, Just x, _) -> Just (Champ x)
+       (_, _, Just x) -> Just (Champ x) 
+       (_, _, _) -> if isFull sb then Just Tie else Nothing
+
+checkDia :: [[Maybe Player]]  -> Maybe Player
+checkDia sb = let
+  tl = head (head sb)
+  tr = last (head sb)
+  mid = head (tail (head (tail sb)))
+  bl = head (last sb)
+  br = last (last sb)
+  in if ((tl == mid && mid == br) || (tr == mid && mid == bl)) then mid else Nothing
+--(InProgress((i:x:t):(a:xs:ts):(o:xxs:tts))) = if (xs /= Nothing && ((i == xs && (head tts) == (head xs) ) || (o == xs && (head t)
+-- = xs))) then xs else Nothing
+
+checkRow :: [[Maybe Player]]  -> Maybe Player
+checkRow b = firstJust $ map aux b -- if any (aux X) board then Just X else if any (aux O) board then Just O else Nothing
+  where
+    aux [Just X, Just X, Just X] = Just X
+    aux [Just O,Just O,Just O] = Just O
+    aux _ = Nothing
+
+--checkRow [] = Nothing
+--checkRow (InProgress(x:xs)) = if (length[p | p <- x, p == X]==3 || length[p | p <- x, p == O]==3) then head x else checkRow xs 
+
+firstJust :: [Maybe a] -> Maybe a
+firstJust [] = Nothing
+firstJust (Nothing:vs) = firstJust vs
+firstJust (Just v:_)= Just v
+
+-- ==3 means exactly 3 to win 
+
+checkCol :: [[Maybe Player]]  -> Maybe Player
+checkCol b = checkRow ((transpose b))
+-- checkCol [] = Nothing
+-- checkCol (InProgress((i:x):(a:xs):(o:xxs))) = 
+--   if i /= Nothing && a == i && o == i then i else checkCol (x:xs:xxs)
+
+
+--assignCoordinates :: SubBoard -> [(Coord, Maybe Player)]
+--assignCoordinates (InProgress lst) = [((x, y), play) | (row, x) <- zip lst [1..], (play, y) <- zip row [1..]]
+
+
+isFull :: [[Maybe Player]] -> Bool
+isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(catMaybes s)==3]==3 then Finished Tie else InProgress p
+
+--[] = Finished Tie
+--isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
+
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
@@ -105,30 +188,3 @@ changeIndex index val (x:xs) = x:(changeIndex (index - 1) val xs)
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 -}
-
-prettyPrint :: GameState -> String
-prettyPrint (player, next, board) =
-  let showTurn = "It is " ++ show player ++ "'s turn."
-      showNext Nothing = "They may play anywhere."
-      showNext (Just x) = "They must play in sub-board " ++ show x
-
-      showSmallRow i (Finished w) = case w of Champ p -> unwords $ replicate 3 (showCell (Just p))
-                                              Tie     -> "[-] [-] [-]"
-      showSmallRow 1 (InProgress [top, mid, bottom]) = unwords $ map showCell top
-      showSmallRow 2 (InProgress [top, mid, bottom]) = unwords $ map showCell mid
-      showSmallRow 3 (InProgress [top, mid, bottom]) = unwords $ map showCell bottom
-      showSmallRow _ _ = error "Error showing line, possibly corrupted GameState."
-
-      showCell Nothing = "[ ]"
-      showCell (Just p) = "[" ++ show p ++ "]"
-
-      showBigRow [ls, cs, rs] = 
-          unlines [showSmallRow i ls ++ " | " ++ showSmallRow  i cs ++ " | " ++ showSmallRow i rs | i <- [1..3] ]
-      showBigRow _ = error "Error showing \"big row.\" Row does not contain exactly 3 elements, likely corrupted GameState."
-
-      showBoard [] = ""
-      showBoard (x:xs) = showBigRow x ++ hline ++ "\n" ++ showBoard xs
-
-  in showTurn ++ "\n" ++ showNext next ++ "\n" ++ showBoard board
-
-hline = "------------|-------------|------------"
