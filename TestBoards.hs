@@ -1,10 +1,10 @@
 import Ultimate
 
---emptySubBoard, allXs, allOs :: SubBoard
-emptySubBoard  = replicate 3 (replicate 3 Nothing)
-allXs = replicate 3 (replicate 3 (Just X))
-allOs = replicate 3 (replicate 3 (Just O))
-tiedSubBoard = replicate 3 (replicate 3 "-")
+-- emptySubBoard :: SubBoard
+-- emptySubBoard   = replicate 3 (replicate 3 Nothing)
+-- allXs = replicate 3 (replicate 3 (Just X))
+-- allOs = replicate 3 (replicate 3 (Just O))
+-- tiedSubBoard = replicate 3 (replicate 3 "-")
 
 {-
 [X] [ ] [O] | [O] [ ] [ ] | [X] [O] [ ]
@@ -32,3 +32,6 @@ testBoard :: GameState
 testBoard = (X, Just (2, 3), [[testSubBoard1_1, testSubBoard2_1, testSubBoard3_1],
                               [testSubBoard1_2, Finished (Champ X), Finished (Champ O)],
                               [Finished (Champ X), testSubBoard2_3, Finished (Champ O)]])
+
+textRep :: String
+textRep = "Player\nCoord\nX_OOXX__O,O__XX____,XO____OO_|_XX_O____,X,O|X,______O_X,O"
