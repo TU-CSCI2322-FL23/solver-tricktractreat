@@ -12,40 +12,49 @@ type GameState = (Player, Maybe Coord, [[SubBoard]])
 -- FIND LEGAL MOVES AND HELPERS ETC.
 findLegalMoves :: GameState -> [BigMove]
 
--- Finds sub board and returns all legal moves in it. If it is finished, calls function above
+-- Finds sub board and returns all legal moves in it. If it is finished, calls function below
 findLegalMoves (player, Just subCoords, board) = 
-  let subBoard = findSubBoard subCoords board
-  in if isInProgress subBoard
-     then makeBigMove subCoords (findLegalSubBoardMoves subBoard) 
-     else findLegalMoves (player, Nothing, board)
+  case findSubBoard subCoords board of 
+    Nothing -> error "Not a valid sub-board"
+    Just subBoard@(InProgress _) -> allPairs subCoords (openSpaces subBoard) 
+    Just (Finished w) -> findLegalMoves (player, Nothing, board)
 
 -- When no next coord is specified, finds all in progress boards and returns all legal moves
 findLegalMoves (player, Nothing, board) = 
-  let labeledValidMoves = [((x, y), findLegalSubBoardMoves subBoard) | (row, x) <- zip board [1..], (subBoard, y) <- zip row [1..], isInProgress subBoard]
-  in concat $ map (\(coord, list) -> makeBigMove coord list) labeledValidMoves
+  let labeledBoards = concat $ [labelRow x row | (x,row) <- zip [1..] board]
+      labelRow x row  = [((x,y), sb) | (y,sb) <- zip [1..] row]
+  in concat [allPairs (x,y) (openSpaces sb) | ((x,y), sb) <- labeledBoards]
 
 -- Finds a sub board given a coord. Isolates row of boards given y coord, then picks the right one based on x coord. 
 -- Will likely rewrite
-findSubBoard :: Coord -> [[SubBoard]] -> SubBoard
+findSubBoard :: Coord -> [[SubBoard]] -> Maybe SubBoard
 findSubBoard (x, y) bigBoard = 
-  let boardRow = head [boardRows | (rowIdx, boardRows) <- (zip [1..] bigBoard), rowIdx == y]
-  in head [subBoard | (subIdx, subBoard) <- (zip [1..] boardRow), subIdx == x]
+  do boardRow <- safeIndex y bigBoard
+     safeIndex x boardRow
 
--- Given a sub board, gives coord values to each spot and returns coords of spots that have no plays in them
-findLegalSubBoardMoves :: SubBoard -> [Coord]
-findLegalSubBoardMoves subBoard = [coord | (coord, play) <- assignCoordinates subBoard, play == Nothing]
+safeIndex :: Int -> [a] -> Maybe a
+safeIndex idx [x, y, z] = 
+  case idx of
+    1 -> Just x
+    2 -> Just y
+    3 -> Just z
+    otherwise -> Nothing
+safeIndex _ [] = Nothing
 
--- Helpers
-makeBigMove :: Coord -> [Coord] -> [BigMove]
-makeBigMove x ys = [(x, y) | y <- ys]
+findNothingIdx :: Eq a => [Maybe a] -> [Int] -- looks at a row of a subboard
+findNothingIdx row = [j | (j, elem) <- zip [1..] row, elem == Nothing]
+
+-- openSpaces :: [[Maybe Player]] -> [Coord] 
+openSpaces :: SubBoard -> [Coord] 
+openSpaces (InProgress board) = concat [allPairs i (findNothingIdx row) | (i,row) <- zip [1..] board]
+openSpaces _ = []
+
+allPairs :: a -> [b] -> [(a,b)]
+allPairs single lst = [(single, lstElem) | lstElem <- lst]
 
 isInProgress :: SubBoard -> Bool
 isInProgress (InProgress _) = True
 isInProgress _ = False
-
--- Function to assign coordinate to each spot in a subboard. General use
-assignCoordinates :: SubBoard -> [(Coord, Maybe Player)]
-assignCoordinates (InProgress lst) = [((x, y), play) | (row, x) <- zip lst [1..], (play, y) <- zip row [1..]]
 
 -- UPDATE GAME STATE
 updateGameState :: GameState -> BigMove -> GameState
@@ -53,9 +62,13 @@ updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, i
   if (not $ move `elem` (findLegalMoves game))
   then error "Invalid move"
   else (opponent p, nextMove, nextBoard)
-  where finished = not $ isInProgress $ findSubBoard (outerX, outerY) boards
+  where finished = case findSubBoard (outerX, outerY) boards of 
+                   Nothing -> error "Not a valid sub-board"
+                   Just (InProgress _) -> False
+                   otherwise -> True
         nextMove = if finished then Nothing else Just (innerX, innerY)
         nextBoard = changeBoard (outerX, outerY) (innerX, innerY) p boards
+
 opponent X = O 
 opponent O = X
 
