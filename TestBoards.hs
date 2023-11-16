@@ -32,3 +32,6 @@ testBoard :: GameState
 testBoard = (X, Just (2, 3), [[testSubBoard1_1, testSubBoard2_1, testSubBoard3_1],
                               [testSubBoard1_2, Finished (Champ X), Finished (Champ O)],
                               [Finished (Champ X), testSubBoard2_3, Finished (Champ O)]])
+
+textRep :: String
+textRep = "Player\nCoord\nX_OOXX__O,O__XX____,XO____OO_|_XX_O____,X,O|X,______O_X,O"
