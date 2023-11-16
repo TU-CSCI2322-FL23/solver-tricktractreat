@@ -17,21 +17,11 @@ findLegalMoves (player, Just subCoords, board) =
     Just subBoard@(InProgress _) -> allPairs subCoords (openSpaces subBoard) 
     Just (Finished w) -> findLegalMoves (player, Nothing, board)
 
-  -- in if isInProgress subBoard
-  --    else findLegalMoves (player, Nothing, board)
-
 -- When no next coord is specified, finds all in progress boards and returns all legal moves
 findLegalMoves (player, Nothing, board) = 
   let labeledBoards = concat $ [labelRow x row | (x,row) <- zip [1..] board]
       labelRow x row  = [((x,y), sb) | (y,sb) <- zip [1..] row]
   in concat [allPairs (x,y) (openSpaces sb) | ((x,y), sb) <- labeledBoards]
-
-  -- concat $ map (\(bigY, bigRow) -> legalRowMoves (1, bigY) bigRow) (zip [1..] board)
-  -- where legalRowMoves :: Coord -> [SubBoard] -> [BigMove]
-  --       legalRowMoves _ [] = []
-  --       legalRowMoves (bigX, bigY) (x:rest) = 
-  --         let rowBigMoves = allPairs (bigX, bigY) (openSpaces (Just x))
-  --         in rowBigMoves ++ legalRowMoves (bigX + 1, bigY) rest
 
 -- Finds a sub board given a coord. Isolates row of boards given y coord, then picks the right one based on x coord. 
 -- Will likely rewrite
@@ -39,8 +29,6 @@ findSubBoard :: Coord -> [[SubBoard]] -> Maybe SubBoard
 findSubBoard (x, y) bigBoard = 
   do boardRow <- safeIndex y bigBoard
      safeIndex x boardRow
-  -- let boardRow = head [boardRows | (rowIdx, boardRows) <- (zip [1..] bigBoard), rowIdx == y]
-  -- in head [subBoard | (subIdx, subBoard) <- (zip [1..] boardRow), subIdx == x]
 
 safeIndex :: Int -> [a] -> Maybe a
 safeIndex idx [x, y, z] = 
@@ -66,17 +54,13 @@ isInProgress :: SubBoard -> Bool
 isInProgress (InProgress _) = True
 isInProgress _ = False
 
--- functions for
-  -- winner of a game state (GameState -> Winner) Joseph
-  -- update game state (GameState -> Move -> GameState) Gaya
-
 updateGameState :: GameState -> BigMove -> GameState
 updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, innerY)) =
   if (not $ move `elem` (findLegalMoves game))
   then error "Invalid move"
   else (opponent p, nextMove, nextBoard)
   where finished = case findSubBoard (outerX, outerY) boards of 
-                   Nothing -> error "you fucked up"
+                   Nothing -> error "Not a valid sub-board"
                    Just (InProgress _) -> False
                    otherwise -> True
         nextMove = if finished then Nothing else Just (innerX, innerY)
