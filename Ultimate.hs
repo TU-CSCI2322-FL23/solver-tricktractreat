@@ -1,6 +1,7 @@
 module Ultimate where
 import Data.Maybe
 import Data.List
+import Data.List.Split
 
 data Player = X | O deriving (Show, Eq)
 data Winner = Champ Player | Tie deriving (Show, Eq)
@@ -174,6 +175,25 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
+
+readGame :: String -> GameState
+readGame text = let things = lines text
+                    bigRows = splitOn "|" (last things)
+                    subBoards = map (splitOn ",") bigRows
+                    smallRows = [ map words row | row <- subBoards ]
+                    -- oneLine = [ map words row | row <- map (splitOn ",") (splitOn "|" (last (lines text))) ]
+
+                    charToPlayer 'X' = Just X
+                    charToPlayer 'O' = Just O
+                    charToPlayer '_' = Nothing
+
+                    readSmallRow str = [ charToPlayer x | x <- str ]
+
+                    readSubBoard ["T"] = Finished Tie
+                    readSubBoard ["X"] = Finished (Champ X)
+                    readSubBoard ["O"] = Finished (Champ O)
+                    readSubBoard lst = InProgress (map readSmallRow lst)
+               in undefined
 
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
