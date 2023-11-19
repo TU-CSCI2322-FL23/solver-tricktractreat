@@ -175,18 +175,6 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
-whoWillWin :: GameState -> Winner
-whoWillWin gs = let
-  wgs = winnerB gs
-  lm = findLegalMoves gs
-  pw = [winnerB(updateGameState gs m) | m <- lm]
-  in if not $ null wgs then fromJust wgs 
-  else case catMaybes pw of
-    [] -> [whoWillWin(updateGameState gs m) | m <- lm]
-    x -> head x 
-
-
---updateGameState
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
