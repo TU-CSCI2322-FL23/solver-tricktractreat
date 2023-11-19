@@ -34,4 +34,4 @@ testBoard = (X, Just (2, 3), [[testSubBoard1_1, testSubBoard2_1, testSubBoard3_1
                               [Finished (Champ X), testSubBoard2_3, Finished (Champ O)]])
 
 textRep :: String
-textRep = "Player\nCoord\nX_O OXX __O,O__ XX_ ___,XO_ ___ OO_|_XX _O_ ___,X,O|X,___ ___ O_X,O"
+textRep = "X\n(2,3)\nX_O OXX __O,O__ XX_ ___,XO_ ___ OO_|_XX _O_ ___,X,O|X,___ ___ O_X,O"

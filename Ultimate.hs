@@ -177,23 +177,40 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
 readGame :: String -> GameState
-readGame text = let things = lines text
-                    bigRows = splitOn "|" (last things)
+readGame text = let [player, next, board] = lines text
+                    bigRows = splitOn "|" board
                     subBoards = map (splitOn ",") bigRows
-                    smallRows = [ map words row | row <- subBoards ]
-                    -- oneLine = [ map words row | row <- map (splitOn ",") (splitOn "|" (last (lines text))) ]
+                    smallRows = map (map words) subBoards
+                    -- oneLine2 = map (map words . splitOn ",") (splitOn "|" board)
 
-                    charToPlayer 'X' = Just X
-                    charToPlayer 'O' = Just O
-                    charToPlayer '_' = Nothing
+                    charToPlayer c
+                      | c == 'X' = Just X
+                      | c == 'O' = Just O
+                      | c == '_' = Nothing
+                      | otherwise = error "Encounterd character other than 'X', 'O', or '_', in subboards, text representation likely corrupted."
 
-                    readSmallRow str = [ charToPlayer x | x <- str ]
+                    readSmallRow = map charToPlayer
 
-                    readSubBoard ["T"] = Finished Tie
-                    readSubBoard ["X"] = Finished (Champ X)
-                    readSubBoard ["O"] = Finished (Champ O)
-                    readSubBoard lst = InProgress (map readSmallRow lst)
-               in undefined
+                    readSubBoard lst@[_,_,_] = InProgress (map readSmallRow lst)
+                    readSubBoard [p]
+                      | p == "T"  = Finished Tie
+                      | p == "X"  = Finished (Champ X)
+                      | p == "O"  = Finished (Champ O)
+                      | otherwise = error "Invalid singleton subboard (string other than \"X\", \"O\", or \"T\")"
+                    readSubBoard _ = error "Subboard invalid length"
+
+                    readPlayer p
+                      | p == "X" = X
+                      | p == "O" = O
+                      | otherwise = error "Invalid player's turn"
+                    
+                    readNext str = Just (0, 0)
+                    -- map (map readSubBoard) smallRows
+                in (readPlayer player, readNext next, map (map readSubBoard) smallRows)
+
+showGame :: GameState -> String
+showGame (player, next, board) = undefined
+  -- let showTurn = 
 
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
@@ -208,3 +225,24 @@ readGame text = let things = lines text
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 -}
+
+prettyPrint :: GameState -> String
+prettyPrint (player, next, board) =
+  let hline = "------------|-------------|------------"
+      showTurn = "It is " ++ show player ++ "'s turn."
+      showNext Nothing = "They may play anywhere."
+      showNext (Just x) = "They must play in sub-board " ++ show x
+      showSmallRow i (Finished w) = case w of Champ p -> unwords $ replicate 3 (showCell (Just p))
+                                              Tie     -> "[-] [-] [-]"
+      showSmallRow 1 (InProgress [top, mid, bottom]) = unwords $ map showCell top
+      showSmallRow 2 (InProgress [top, mid, bottom]) = unwords $ map showCell mid
+      showSmallRow 3 (InProgress [top, mid, bottom]) = unwords $ map showCell bottom
+      showSmallRow _ _ = error "Error showing line, possibly corrupted GameState."
+      showCell Nothing = "[ ]"
+      showCell (Just p) = "[" ++ show p ++ "]"
+      showBigRow [ls, cs, rs] = 
+          unlines [showSmallRow i ls ++ " | " ++ showSmallRow  i cs ++ " | " ++ showSmallRow i rs | i <- [1..3] ]
+      showBigRow _ = error "Error showing \"big row.\" Row does not contain exactly 3 elements, likely corrupted GameState."
+      showBoard [] = ""
+      showBoard (x:xs) = showBigRow x ++ hline ++ "\n" ++ showBoard xs
+  in showTurn ++ "\n" ++ showNext next ++ "\n" ++ showBoard board
