@@ -1,5 +1,6 @@
 module Ultimate where
-import Data.Maybe 
+import Data.Maybe
+import Data.List
 
 data Player = X | O deriving (Show, Eq)
 data Winner = Champ Player | Tie deriving (Show, Eq)
@@ -8,11 +9,7 @@ type Coord = (Int, Int)
 type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD second is for the spot on the subboard
 type GameState = (Player, Maybe Coord, [[SubBoard]])
 
-sb = InProgress [[Just X, Just O, Just X], [Just O, Just X, Nothing], [Nothing, Nothing, Just O]]
-row = [sb, sb, sb]
-board = [row, amendedRow, row]
-amendedRow = [sb, sb, Finished $ Champ X]
-
+-- UPDATE GAME STATE (FIXED)
 updateGameState :: GameState -> BigMove -> Maybe GameState
 updateGameState (p, subBoard, boards) move@(outer, inner) =
   if valid
@@ -71,3 +68,158 @@ unpackNext head next =
   case next of
     Nothing -> Nothing
     Just smth -> Just $ head:smth
+
+-- FIND LEGAL MOVES AND HELPERS ETC.
+findLegalMoves :: GameState -> [BigMove]
+
+-- Finds sub board and returns all legal moves in it. If it is finished, calls function below
+findLegalMoves (player, Just subCoords, board) = 
+  case findSubBoard subCoords board of 
+    Nothing -> error "Not a valid sub-board"
+    Just subBoard@(InProgress _) -> allPairs subCoords (openSpaces subBoard) 
+    Just (Finished w) -> findLegalMoves (player, Nothing, board)
+
+-- When no next coord is specified, finds all in progress boards and returns all legal moves
+findLegalMoves (player, Nothing, board) = 
+  let labeledBoards = concat $ [labelRow x row | (x,row) <- zip [1..] board]
+      labelRow x row  = [((x,y), sb) | (y,sb) <- zip [1..] row]
+  in concat [allPairs (x,y) (openSpaces sb) | ((x,y), sb) <- labeledBoards]
+
+-- Finds a sub board given a coord. Isolates row of boards given y coord, then picks the right one based on x coord. 
+-- Will likely rewrite
+findSubBoard :: Coord -> [[SubBoard]] -> Maybe SubBoard
+findSubBoard (x, y) bigBoard = 
+  do boardRow <- safeIndex y bigBoard
+     safeIndex x boardRow
+
+safeIndex :: Int -> [a] -> Maybe a
+safeIndex idx [x, y, z] = 
+  case idx of
+    1 -> Just x
+    2 -> Just y
+    3 -> Just z
+    otherwise -> Nothing
+safeIndex _ [] = Nothing
+
+findNothingIdx :: Eq a => [Maybe a] -> [Int] -- looks at a row of a subboard
+findNothingIdx row = [j | (j, elem) <- zip [1..] row, elem == Nothing]
+
+-- openSpaces :: [[Maybe Player]] -> [Coord] 
+openSpaces :: SubBoard -> [Coord] 
+openSpaces (InProgress board) = concat [allPairs i (findNothingIdx row) | (i,row) <- zip [1..] board]
+openSpaces _ = []
+
+allPairs :: a -> [b] -> [(a,b)]
+allPairs single lst = [(single, lstElem) | lstElem <- lst]
+
+isInProgress :: SubBoard -> Bool
+isInProgress (InProgress _) = True
+isInProgress _ = False
+
+-- CHECK WINNER HELPERS ETC.
+winnerB :: GameState -> Maybe Winner
+winnerB (p, mc, sbs) =
+  case checkWinner (InProgress [hasChamp s | s <- sbs]) of
+    Just outcome -> Just outcome
+    Nothing -> if or [isInProgress s| s <- concat sbs] then Nothing else Just Tie
+  
+hasChamp :: [SubBoard] -> [Maybe Player]
+hasChamp [] = []
+hasChamp (sb:sbs) = [congrad (checkWinner sb)] ++ (hasChamp sbs)
+
+
+congrad :: Maybe Winner -> Maybe Player
+congrad Nothing = Nothing
+congrad (Just Tie) = Nothing
+congrad (Just (Champ x)) = Just x
+
+
+  --let
+  --winLine = [l |l <-lineLst, (checkLine l) /= Nothing]
+  --in if winLine == [] then Nothing else Just (checkLine (head winLine)) 
+
+--missing case for full board tie game. Functionality not confirmed.XX
+
+-- checkLine :: Line -> SubBoard -> Maybe Winner
+-- checkLine (ci:ca:co) sb  = undefined
+-- if ci == Finished x && ci == ca == co then Just x else Nothing
+--fix Logic?XXXXX
+
+
+checkWinner :: SubBoard -> Maybe Winner
+checkWinner (Finished outcome) = Just outcome
+checkWinner (InProgress sb) =
+  case (checkDia sb, checkRow sb, checkCol sb) of
+       (Just x, _, _) -> Just (Champ x)
+       (_, Just x, _) -> Just (Champ x)
+       (_, _, Just x) -> Just (Champ x) 
+       (_, _, _) -> if isFull sb then Just Tie else Nothing
+
+checkDia :: [[Maybe Player]]  -> Maybe Player
+checkDia sb = let
+  tl = head (head sb)
+  tr = last (head sb)
+  mid = head (tail (head (tail sb)))
+  bl = head (last sb)
+  br = last (last sb)
+  in if ((tl == mid && mid == br) || (tr == mid && mid == bl)) then mid else Nothing
+--(InProgress((i:x:t):(a:xs:ts):(o:xxs:tts))) = if (xs /= Nothing && ((i == xs && (head tts) == (head xs) ) || (o == xs && (head t)
+-- = xs))) then xs else Nothing
+
+checkRow :: [[Maybe Player]]  -> Maybe Player
+checkRow b = firstJust $ map aux b -- if any (aux X) board then Just X else if any (aux O) board then Just O else Nothing
+  where
+    aux [Just X, Just X, Just X] = Just X
+    aux [Just O,Just O,Just O] = Just O
+    aux _ = Nothing
+
+--checkRow [] = Nothing
+--checkRow (InProgress(x:xs)) = if (length[p | p <- x, p == X]==3 || length[p | p <- x, p == O]==3) then head x else checkRow xs 
+
+firstJust :: [Maybe a] -> Maybe a
+firstJust [] = Nothing
+firstJust (Nothing:vs) = firstJust vs
+firstJust (Just v:_)= Just v
+
+-- ==3 means exactly 3 to win 
+
+checkCol :: [[Maybe Player]]  -> Maybe Player
+checkCol b = checkRow ((transpose b))
+-- checkCol [] = Nothing
+-- checkCol (InProgress((i:x):(a:xs):(o:xxs))) = 
+--   if i /= Nothing && a == i && o == i then i else checkCol (x:xs:xxs)
+
+
+--assignCoordinates :: SubBoard -> [(Coord, Maybe Player)]
+--assignCoordinates (InProgress lst) = [((x, y), play) | (row, x) <- zip lst [1..], (play, y) <- zip row [1..]]
+
+
+isFull :: [[Maybe Player]] -> Bool
+isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(catMaybes s)==3]==3 then Finished Tie else InProgress p
+
+--[] = Finished Tie
+--isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
+
+whoWillWin :: GameState -> Winner
+whoWillWin gs = let
+  wgs = winnerB gs
+  lm = findLegalMoves gs
+  pw = [winnerB(updateGameState gs m) | m <- lm]
+  in if not $ null wgs then fromJust wgs 
+  else case catMaybes pw of
+    [] -> [whoWillWin(updateGameState gs m) | m <- lm]
+    x -> head x 
+
+{-
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+------------|-------------|------------
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+------------|-------------|------------
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+[ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
+-}
