@@ -9,6 +9,66 @@ type Coord = (Int, Int)
 type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD second is for the spot on the subboard
 type GameState = (Player, Maybe Coord, [[SubBoard]])
 
+-- UPDATE GAME STATE (FIXED)
+updateGameState :: GameState -> BigMove -> Maybe GameState
+updateGameState (p, subBoard, boards) move@(outer, inner) =
+  if valid
+  then let finished = not $ isInProgress $ fromJust $ findSubBoard inner boards -- fromJust is safe bc coords are superficially valid
+           nextMove = if finished then Nothing else Just inner
+           nextBoard = changeBoard outer inner p boards
+       in case nextBoard of
+         Nothing -> Nothing
+         Just board -> Just (opponent p, nextMove, board)
+  else Nothing
+  where valid = case subBoard of
+                  Nothing -> checkBigMove move outer
+                  Just sb -> checkBigMove move sb
+
+opponent X = O
+opponent O = X
+
+changeBoard :: Coord -> Coord -> Player -> [[SubBoard]] -> Maybe [[SubBoard]]
+changeBoard (outerX, 1) (innerX, innerY) val (b:bs) = unpackHead changed bs
+  where changed = changeSubBoardRow outerX (innerX, innerY) val b
+changeBoard (outerX, outerY) (innerX, innerY) val (b:bs) = unpackNext b next
+  where next = changeBoard (outerX, outerY - 1) (innerX, innerY) val bs
+
+changeSubBoardRow :: Int -> Coord -> Player -> [SubBoard] -> Maybe [SubBoard]
+changeSubBoardRow 1 (x, y) val (b:bs) = unpackHead changed bs
+  where changed = changeSubBoard (x, y) val b
+changeSubBoardRow oX (x, y) val (b:bs) = unpackNext b next
+  where next = changeSubBoardRow (oX - 1) (x, y) val bs
+
+changeSubBoard :: Coord -> Player -> SubBoard -> Maybe SubBoard
+changeSubBoard coord val (InProgress boards) =
+  case changed of
+    Nothing -> Nothing -- error
+    Just smth -> Just $ InProgress smth
+  where changed = aux coord val boards
+        aux :: Coord -> Player -> [[Maybe Player]] -> Maybe [[Maybe Player]]
+        aux (x, 1) val (b:bs) = unpackHead (changeRow x val b) bs
+        aux (x, y) val (b:bs) = unpackNext b (aux (x, y - 1) val bs)
+changeSubBoard (x, y) val (Finished winner) = Nothing -- error
+
+changeRow :: Int -> Player -> [Maybe Player] -> Maybe [Maybe Player] -- this changes a row
+changeRow 1 val (b:bs) =
+  case b of
+    Nothing -> Just $ (Just val):bs -- only time nothing is good (bc it's an empty space not an error)
+    otherwise -> Nothing
+changeRow index val (b:bs) = unpackNext b (changeRow (index - 1) val bs)
+
+checkBigMove ((x1, y1), (x2, y2)) (x3, y3) = (x1, y1) == (x3, y3) && (and $ map (\x -> x > 0 && x <= 3) [x1, y1, x2, y2]) -- True if valid, False if not
+
+unpackHead head next =
+  case head of
+    Nothing -> Nothing
+    Just smth -> Just $ smth:next
+
+unpackNext head next =
+  case next of
+    Nothing -> Nothing
+    Just smth -> Just $ head:smth
+
 -- FIND LEGAL MOVES AND HELPERS ETC.
 findLegalMoves :: GameState -> [BigMove]
 
@@ -55,41 +115,6 @@ allPairs single lst = [(single, lstElem) | lstElem <- lst]
 isInProgress :: SubBoard -> Bool
 isInProgress (InProgress _) = True
 isInProgress _ = False
-
--- UPDATE GAME STATE
-updateGameState :: GameState -> BigMove -> GameState
-updateGameState game@(p, Just (x, y), boards) move@((outerX, outerY), (innerX, innerY)) =
-  if (not $ move `elem` (findLegalMoves game))
-  then error "Invalid move"
-  else (opponent p, nextMove, nextBoard)
-  where finished = case findSubBoard (outerX, outerY) boards of 
-                   Nothing -> error "Not a valid sub-board"
-                   Just (InProgress _) -> False
-                   otherwise -> True
-        nextMove = if finished then Nothing else Just (innerX, innerY)
-        nextBoard = changeBoard (outerX, outerY) (innerX, innerY) p boards
-
-opponent X = O 
-opponent O = X
-
-changeBoard :: Coord -> Coord -> Player -> [[SubBoard]] -> [[SubBoard]]
-changeBoard (outerX, 1) (innerX, innerY) val (l:ls) = (changeSubBoardRow outerX (innerX, innerY) val l):ls
-changeBoard (outerX, outerY) (innerX, innerY) val (l:ls) = l:(changeBoard (outerX, outerY - 1) (innerX, innerY) val ls)
-
-changeSubBoardRow :: Int -> Coord -> Player -> [SubBoard] -> [SubBoard]
-changeSubBoardRow 1 (x, y) val (l:ls) = (changeSubBoard (x, y) val l):ls
-changeSubBoardRow oX (x, y) val (l:ls) = l:(changeSubBoardRow (oX - 1) (x, y) val ls)
-
-changeSubBoard :: Coord -> Player -> SubBoard -> SubBoard
-changeSubBoard (x, y) val (InProgress (l:ls)) = InProgress (aux (x, y) val (l:ls))
-  where aux :: Coord -> Player -> [[Maybe Player]] -> [[Maybe Player]]
-        aux (x, 1) val (l:ls) = (changeIndex x val l):ls
-        aux (x, y) val (l:ls) = l:(aux (x, y - 1) val ls)
--- changeSubBoard (x, y) val (Finished winner) = Finished winner
-
-changeIndex :: Int -> Player -> [Maybe Player] -> [Maybe Player]
-changeIndex 1 val (x:xs) = (Just val):xs
-changeIndex index val (x:xs) = x:(changeIndex (index - 1) val xs)
 
 -- CHECK WINNER HELPERS ETC.
 winnerB :: GameState -> Maybe Winner
@@ -185,8 +210,6 @@ whoWillWin gs = let
     [] -> [whoWillWin(updateGameState gs m) | m <- lm]
     x -> head x 
 
-
---updateGameState
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
