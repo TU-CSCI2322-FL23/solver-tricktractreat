@@ -199,7 +199,7 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
-
+{-
 whoWillWin :: GameState -> Winner
 whoWillWin gs = let
   wgs = winnerB gs
@@ -209,6 +209,30 @@ whoWillWin gs = let
   else case catMaybes pw of
     [] -> [whoWillWin(updateGameState gs m) | m <- lm]
     x -> head x 
+-}
+
+prettyPrint :: GameState -> String
+prettyPrint (player, next, board) =
+  let showTurn = "It is " ++ show player ++ "'s turn."
+      showNext Nothing = "They may play anywhere."
+      showNext (Just x) = "They must play in sub-board " ++ show x
+      showSmallRow i (Finished w) = case w of Champ p -> unwords $ replicate 3 (showCell (Just p))
+                                              Tie     -> "[-] [-] [-]"
+      showSmallRow 1 (InProgress [top, mid, bottom]) = unwords $ map showCell top
+      showSmallRow 2 (InProgress [top, mid, bottom]) = unwords $ map showCell mid
+      showSmallRow 3 (InProgress [top, mid, bottom]) = unwords $ map showCell bottom
+      showSmallRow _ _ = error "Error showing line, possibly corrupted GameState."
+      showCell Nothing = "[ ]"
+      showCell (Just p) = "[" ++ show p ++ "]"
+
+      showBigRow [ls, cs, rs] = 
+          unlines [showSmallRow i ls ++ " | " ++ showSmallRow  i cs ++ " | " ++ showSmallRow i rs | i <- [1..3] ]
+      showBigRow _ = error "Error showing \"big row.\" Row does not contain exactly 3 elements, likely corrupted GameState."
+      showBoard [] = ""
+      showBoard (x:xs) = showBigRow x ++ hline ++ "\n" ++ showBoard xs
+ in showTurn ++ "\n" ++ showNext next ++ "\n" ++ showBoard board
+
+hline = "------------|-------------|------------"
 
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
