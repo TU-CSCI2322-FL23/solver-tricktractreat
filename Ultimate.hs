@@ -199,7 +199,7 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
-{-
+
 whoWillWin :: GameState -> Winner
 whoWillWin gs = let
   wgs = winnerB gs
@@ -209,7 +209,6 @@ whoWillWin gs = let
   else case catMaybes pw of
     [] -> [whoWillWin(updateGameState gs m) | m <- lm]
     x -> head x 
--}
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
