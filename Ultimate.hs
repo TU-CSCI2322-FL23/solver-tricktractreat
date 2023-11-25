@@ -210,7 +210,6 @@ whoWillWin gs = let
     [] -> [whoWillWin(updateGameState gs m) | m <- lm]
     x -> head x 
 
-
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
   let showTurn = "It is " ++ show player ++ "'s turn."
