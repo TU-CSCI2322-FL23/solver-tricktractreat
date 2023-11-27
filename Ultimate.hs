@@ -181,16 +181,16 @@ whoWillWin gs@(p, sb, sbs) = let
   lm = findLegalMoves gs
   pw = [winnerB(updateGameState gs m) | m <- lm]
   in if not $ null wgs then fromJust wgs 
-  else case (catMaybes pw) p of
-    [] X -> intToWin (max(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
-    [] O -> intToWin (min(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
-    arb _ -> head arb 
+  else case ((catMaybes pw), p) of
+    ([], X) -> intToWin (maximum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
+    ([], O) -> intToWin (minimum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
+    (arb, _) -> head arb 
 
 playerMinMax :: Winner -> Int
 playerMinMax p = case p of
-  Champ X = 1
-  Champ O = -1
-  Tie = 0
+  Champ X -> 1
+  Champ O -> -1
+  Tie -> 0
 
 intToWin :: Int -> Winner
 intToWin i = case i of
