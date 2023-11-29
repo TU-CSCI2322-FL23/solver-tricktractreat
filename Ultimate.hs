@@ -1,6 +1,7 @@
 module Ultimate where
 import Data.Maybe
 import Data.List
+import Debug.Trace
 
 data Player = X | O deriving (Show, Eq)
 data Winner = Champ Player | Tie deriving (Show, Eq)
@@ -203,6 +204,7 @@ whoWillWin :: GameState -> Winner
 whoWillWin gs@(p, sb, sbs) = let
   wgs = winnerB gs
   moves = possibleMoves gs
+
   pw = map winnerB $ catMaybes [updateGameState gs m | m <- moves]
   in case wgs of
      Just smth -> smth
@@ -229,11 +231,37 @@ intToWin i = case i of
   -1 -> Champ O
   1 -> Champ X
   _ -> Tie
+
+
+-- return maybe bigmove
+bestMove :: GameState -> Maybe BigMove
+bestMove gs@(player, move, board) = 
+  case winnerB gs of
+    Just smth -> Nothing
+    Nothing ->
+      let
+        movesAndResults = map (\x -> (x, updateGameState gs x)) (possibleMoves gs)
+        bestMoves = map (\(move, Just gs) -> (move, whoWillWin gs)) movesAndResults
+      in Just $ fst $ case find (\(m, res) -> res == Champ player) bestMoves of 
+                Just smth -> smth
+                Nothing -> case find (\(m, res) -> res == Tie) bestMoves of
+                            Just smth -> smth
+                            Nothing -> error "aye"
+
+    
+    -- case bestMoves of 
+
+    --   any (\(m, res) -> res == Champ player) bestMoves -> 
+    --   any (\(m, res) -> res == Tie) bestMoves -> find (\(m, res) -> res = Champ player) bestMove
+    -- [move | (move, winner) <- bestMoves, winner == Champ player]
+
+-- anyWinningMoves :: GameState -> Bool
+-- anyWinningMoves gs = 
+
+
   
 
 
--- bestMove :: GameState -> Coord
--- bestMove gs@(player, turn, board) = 
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
