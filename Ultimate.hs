@@ -201,14 +201,29 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
 whoWillWin :: GameState -> Winner
-whoWillWin gs = let
+whoWillWin gs@(p, sb, sbs) = let
   wgs = winnerB gs
   lm = findLegalMoves gs
   pw = [winnerB(updateGameState gs m) | m <- lm]
   in if not $ null wgs then fromJust wgs 
-  else case catMaybes pw of
-    [] -> [whoWillWin(updateGameState gs m) | m <- lm]
-    x -> head x 
+    else case ((catMaybes pw), p) of
+         ([], X) -> intToWin (maximum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
+         ([], O) -> intToWin (minimum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
+         (arb, _) -> head arb 
+
+playerMinMax :: Winner -> Int
+playerMinMax p = case p of
+  Champ X -> 1
+  Champ O -> -1
+  Tie -> 0
+
+intToWin :: Int -> Winner
+intToWin i = case i of
+  -1 -> Champ O
+  1 -> Champ X
+  _ -> Tie
+  
+
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
@@ -232,6 +247,7 @@ prettyPrint (player, next, board) =
  in showTurn ++ "\n" ++ showNext next ++ "\n" ++ showBoard board
 
 hline = "------------|-------------|------------"
+
 
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
