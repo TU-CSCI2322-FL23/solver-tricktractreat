@@ -33,5 +33,30 @@ testBoard = (X, Just (2, 3), [[testSubBoard1_1, testSubBoard2_1, testSubBoard3_1
                               [testSubBoard1_2, Finished (Champ X), Finished (Champ O)],
                               [Finished (Champ X), testSubBoard2_3, Finished (Champ O)]])
 
+almostFinished :: SubBoard
+almostFinished = InProgress [[Nothing, Just O, Just X], [Just X, Nothing, Just O], [Just O, Just X, Just X]]
+
+nearlyDoneTest :: GameState
+nearlyDoneTest = (X, Just (2,2), [
+    [Finished (Champ X), Finished (Champ O), Finished (Champ O)],
+    [Finished (Champ O), almostFinished,     Finished (Champ X)],
+    [Finished (Champ O), Finished (Champ O), Finished (Champ X)]])
+
+
+emptyRow :: [Maybe Player]
+emptyRow = [Nothing, Nothing, Nothing]
+emptySubBoard = InProgress $ replicate 3 emptyRow 
+emptyGameBoardRow = replicate 3 emptySubBoard
+emptyGameBoard = replicate 3 emptyGameBoardRow
+
+emptyGameState = (X, Nothing, emptyGameBoard)
+
+tieGameBoard :: [[SubBoard]]
+tieGameBoard = [[Finished (Champ O), Finished (Champ O), Finished (Champ X)], 
+                [Finished (Champ X), Finished (Champ X), Finished (Champ O)],
+                [Finished (Champ O), Finished (Champ X), Finished (Champ X)]]
+
+tieGameState = (X, Nothing, tieGameBoard)
+
 textRep :: String
 textRep = "Player\nCoord\nX_OOXX__O,O__XX____,XO____OO_|_XX_O____,X,O|X,______O_X,O"
