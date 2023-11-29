@@ -180,7 +180,6 @@ firstJust :: [Maybe a] -> Maybe a
 firstJust [] = Nothing
 firstJust (Nothing:vs) = firstJust vs
 firstJust (Just v:_)= Just v
-
 -- ==3 means exactly 3 to win 
 
 checkCol :: [[Maybe Player]]  -> Maybe Player
@@ -209,6 +208,9 @@ whoWillWin gs = let
   else case catMaybes pw of
     [] -> [whoWillWin(updateGameState gs m) | m <- lm]
     x -> head x 
+
+bestMove :: GameState -> Coord
+bestMove gs@(player, turn, board) = 
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
