@@ -41,11 +41,13 @@ changeSubBoardRow oX (x, y) val (b:bs) = unpackNext b next
   where next = changeSubBoardRow (oX - 1) (x, y) val bs
 
 changeSubBoard :: Coord -> Player -> SubBoard -> Maybe SubBoard
-changeSubBoard coord val (InProgress boards) =
+changeSubBoard coord val (InProgress board) =
   case changed of
     Nothing -> Nothing -- error
-    Just smth -> Just $ InProgress smth
-  where changed = aux coord val boards
+    Just smth -> case checkWinner (InProgress smth) of
+                   Nothing -> Just $ InProgress smth
+                   Just winner -> Just $ Finished winner
+  where changed = aux coord val board
         aux :: Coord -> Player -> [[Maybe Player]] -> Maybe [[Maybe Player]]
         aux (x, 1) val (b:bs) = unpackHead (changeRow x val b) bs
         aux (x, y) val (b:bs) = unpackNext b (aux (x, y - 1) val bs)
@@ -204,7 +206,6 @@ whoWillWin :: GameState -> Winner
 whoWillWin gs@(p, sb, sbs) = let
   wgs = winnerB gs
   moves = possibleMoves gs
-
   pw = map winnerB $ catMaybes [updateGameState gs m | m <- moves]
   in case wgs of
      Just smth -> smth
@@ -257,11 +258,6 @@ bestMove gs@(player, move, board) =
 
 -- anyWinningMoves :: GameState -> Bool
 -- anyWinningMoves gs = 
-
-
-  
-
-
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
