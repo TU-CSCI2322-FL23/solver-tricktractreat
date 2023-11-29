@@ -37,10 +37,19 @@ almostFinished :: SubBoard
 almostFinished = InProgress [[Just X, Just O, Just O], [Just O, Nothing, Just O], [Just O, Just X, Just X]]
 
 nearlyDoneTest :: GameState
-nearlyDoneTest = (, Just (2,2), [
+nearlyDoneTest = (O, Just (2,2), [
     [Finished (Champ X), Finished (Champ O), Finished (Champ O)],
     [Finished (Champ O), almostFinished,     Finished (Champ X)],
     [Finished (Champ O), Finished (Champ O), Finished (Champ X)]])
+
+
+emptyRow :: [Maybe Player]
+emptyRow = [Nothing, Nothing, Nothing]
+emptySubBoard = InProgress $ replicate 3 emptyRow 
+emptyGameBoardRow = replicate 3 emptySubBoard
+emptyGameBoard = replicate 3 emptyGameBoardRow
+
+emptyGameState = (X, Nothing, emptyGameBoard)
 
 textRep :: String
 textRep = "Player\nCoord\nX_OOXX__O,O__XX____,XO____OO_|_XX_O____,X,O|X,______O_X,O"

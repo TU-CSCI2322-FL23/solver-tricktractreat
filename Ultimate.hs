@@ -202,13 +202,21 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 whoWillWin :: GameState -> Winner
 whoWillWin gs@(p, sb, sbs) = let
   wgs = winnerB gs
-  lm = findLegalMoves gs
-  pw = [winnerB(updateGameState gs m) | m <- lm]
-  in if not $ null wgs then fromJust wgs 
-    else case ((catMaybes pw), p) of
-         ([], X) -> intToWin (maximum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
-         ([], O) -> intToWin (minimum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
-         (arb, _) -> head arb 
+  moves = possibleMoves gs
+  pw = map winnerB $ catMaybes [updateGameState gs m | m <- moves]
+  in case wgs of
+     Just smth -> smth
+     Nothing -> case ((catMaybes pw), p) of
+                ([], X) -> intToWin (maximum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
+                ([], O) -> intToWin (minimum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
+                (arb, _) -> head arb
+
+possibleMoves :: GameState -> [BigMove]
+possibleMoves (_, Just (x,y), _) = 
+  [((x,y),(a,b)) | a <- [1..3], b <- [1..3]]
+
+possibleMoves (_, Nothing, _) = 
+  [((x,y), (a,b)) | x <- [1..3], y <- [1..3], a <- [1..3], b <- [1..3]]
 
 playerMinMax :: Winner -> Int
 playerMinMax p = case p of
@@ -224,8 +232,8 @@ intToWin i = case i of
   
 
 
-bestMove :: GameState -> Coord
-bestMove gs@(player, turn, board) = 
+-- bestMove :: GameState -> Coord
+-- bestMove gs@(player, turn, board) = 
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
