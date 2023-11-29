@@ -40,11 +40,13 @@ changeSubBoardRow oX (x, y) val (b:bs) = unpackNext b next
   where next = changeSubBoardRow (oX - 1) (x, y) val bs
 
 changeSubBoard :: Coord -> Player -> SubBoard -> Maybe SubBoard
-changeSubBoard coord val (InProgress boards) =
+changeSubBoard coord val (InProgress board) =
   case changed of
     Nothing -> Nothing -- error
-    Just smth -> Just $ InProgress smth
-  where changed = aux coord val boards
+    Just smth -> case checkWinner (InProgress smth) of
+                   Nothing -> Just $ InProgress smth
+                   Just winner -> Just $ Finished winner
+  where changed = aux coord val board
         aux :: Coord -> Player -> [[Maybe Player]] -> Maybe [[Maybe Player]]
         aux (x, 1) val (b:bs) = unpackHead (changeRow x val b) bs
         aux (x, y) val (b:bs) = unpackNext b (aux (x, y - 1) val bs)
@@ -199,7 +201,7 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
-
+{-
 whoWillWin :: GameState -> Winner
 whoWillWin gs = let
   wgs = winnerB gs
@@ -209,7 +211,7 @@ whoWillWin gs = let
   else case catMaybes pw of
     [] -> [whoWillWin(updateGameState gs m) | m <- lm]
     x -> head x 
-
+-}
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
   let showTurn = "It is " ++ show player ++ "'s turn."
