@@ -14,9 +14,8 @@ type GameState = (Player, Maybe Coord, [[SubBoard]])
 updateGameState :: GameState -> BigMove -> Maybe GameState
 updateGameState (p, subBoard, boards) move@(outer, inner) =
   if valid
-  then let nextSB = findSubBoard inner boards
-           nextFinished = not $ isInProgress $ fromJust $ nextSB -- fromJust is safe bc coords are superficially valid
-           nextMove = if nextFinished then Nothing else Just inner
+  then let finished = not $ isInProgress $ fromJust $ findSubBoard inner boards -- fromJust is safe bc coords are superficially valid
+           nextMove = if finished then Nothing else Just inner
            nextBoard = changeBoard outer inner p boards
        in case nextBoard of
          Nothing -> Nothing
@@ -24,9 +23,7 @@ updateGameState (p, subBoard, boards) move@(outer, inner) =
   else Nothing
   where valid = case subBoard of
                   Nothing -> checkBigMove move outer
-                  Just sb -> if currentFinished then checkBigMove move outer else checkBigMove move sb
-                    where currentSB = findSubBoard sb boards
-                          currentFinished = not $ isInProgress $ fromJust $ currentSB
+                  Just sb -> checkBigMove move sb
 
 opponent X = O
 opponent O = X

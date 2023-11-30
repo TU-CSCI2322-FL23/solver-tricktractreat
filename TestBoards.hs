@@ -38,7 +38,7 @@ almostFinished = InProgress [[Nothing, Just O, Just X], [Just X, Nothing, Just O
 
 nearlyDoneTest :: GameState
 nearlyDoneTest = (X, Just (3,2), [
-    [Finished (Champ X), Finished (Champ O), almostFinished],
+    [Finished (Champ X), Finished (Champ O), Finished (Champ O)],
     [Finished (Champ O), almostFinished,     Finished (Champ X)],
     [Finished (Champ O), Finished (Champ O), Finished (Champ X)]])
 
