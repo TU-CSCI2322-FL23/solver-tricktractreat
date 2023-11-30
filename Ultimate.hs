@@ -200,16 +200,33 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
+whoMightWin :: Int -> GameState -> Maybe Winner
+whoMightWin depth gs@(p, sb, sbs) = if depth < 0 then Nothing else case depth of
+  0 -> winnerB gs
+  1 -> let
+    pw = map WinnerB $ catMaybes[updateGameState gs m | m <- moves]
+    in if pw == [] then Nothing else if (Champ p) `elem` pw then Just (Champ p) else Just Tie 
+  _ -> let
+       wgs = winnerB gs
+       moves = possibleMoves gs
+       pw = map winnerB $ [updateGameState gs m | m <- lm]
+       in if not $ null wgs then fromJust wgs 
+          else case ((catMaybes pw), p) of
+               ([], X) -> intToWin (maximum(map playerMinMax[whoMightWin (depth-1) (updateGameState gs m) | m <- moves]))
+               ([], O) -> intToWin (minimum(map playerMinMax[whoMightWin (depth-1) (updateGameState gs m) | m <- moves]))
+               (arb, _) -> Just (head arb)
+
 whoWillWin :: GameState -> Winner
 whoWillWin gs@(p, sb, sbs) = let
   wgs = winnerB gs
-  lm = findLegalMoves gs
-  pw = [winnerB(updateGameState gs m) | m <- lm]
-  in if not $ null wgs then fromJust wgs 
-    else case ((catMaybes pw), p) of
-         ([], X) -> intToWin (maximum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
-         ([], O) -> intToWin (minimum(map playerMinMax[whoWillWin(updateGameState gs m) | m <- lm]))
-         (arb, _) -> head arb 
+  moves = possibleMoves gs
+  pw = map winnerB $ catMaybes [updateGameState gs m | m <- moves]
+  in case wgs of
+     Just smth -> smth
+     Nothing -> case ((catMaybes pw), p) of
+                ([], X) -> intToWin (maximum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
+                ([], O) -> intToWin (minimum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
+                (arb, _) -> head arb
 
 playerMinMax :: Winner -> Int
 playerMinMax p = case p of
