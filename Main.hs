@@ -14,7 +14,7 @@ options :: [OptDescr Flag]
 options = [Option ['h'] ["help"] (NoArg Help) "Print usage information and exit.",
            Option ['w'] ["winner"] (NoArg Win) "Prints the best move with no cut-off depth.",
            Option ['d'] ["depth"] (ReqArg Depth "<num>") "Prints the best move with a specified cut-off depth.",
-           Option ['m'] ["move"] (ReqArg Move "<move>") "Makes the given move and prints the resulting board",
+           Option ['m'] ["move"] (ReqArg Move "<move>") "Makes the given move and prints the resulting board. Moves are two coordinates, first for the subboard and second for the square on the subboard.",
            Option ['v'] ["verbose"] (NoArg Verbose) "Prints more detail (for flags that print moves, using this flag will output the move and a description and for flags that print the next game state, this flag will print the board visually as well."]
 
 
@@ -34,8 +34,6 @@ showGame game = "Show!!"
 
 bestMove :: GameState -> Maybe BigMove
 bestMove game = Just ((1, 1), (1, 1))
-
-whoWillWin game = Champ X
 
 writeGame :: GameState -> FilePath -> IO ()
 writeGame game file =
@@ -75,36 +73,65 @@ putBestMove game verbose depth =
                  winner = case nextGame of
                             Nothing -> Nothing
                             Just ng -> case depth of
-                                         Nothing -> Just whoWillWin ng
+                                         Nothing -> Just $ whoWillWin ng
                                          Just smth -> whoMightWin ng smth 
                  winnerStr = case winner of
                                Just (Champ X) -> "win for X"
                                Just (Champ O) -> "win for O"
                                Just Tie -> "tie"
                                Nothing -> "No moves, no winner."
-             putStrLn $ " resulting in a " ++ winner
+             putStrLn $ " resulting in a " ++ winnerStr
      else do putStr "\n"
      putStr $ "The move results in the following game\n" ++ gameStr ++ "\n"
+
+putMove :: GameState -> Bool -> BigMove -> IO ()
+putMove game verbose move =
+  do let nextGame = updateGameState game move
+         gameStr = case (nextGame, verbose) of
+                        (Nothing, _) -> "invalid move entered"
+                        (Just smth, True) -> prettyPrint smth
+                        (Just smth, False) -> show smth
+         putStrLn $ "The move entered results in the following game state:\n" ++ gameStr
 
 main :: IO ()
 -- reads a file name from standard input or the arguments, loads the game, and prints the best move
 main =
   do args <- getArgs
-     let (flags, inputs, errors) = getOpt Permute options args
-     {-let file =
-       case args of
-         (x:xs) -> x
-         _ -> "test.txt"
-     -}
+     let (flags, inputs, errors) = trace (show (getOpt Permute options args)) getOpt Permute options args
+         verbose = (Verbose `elem` flags)
+         depth = getDepth flags
+         move = getMove flags
      -- data Flag = Win | Depth String | Help | Move String | Verbose | Interactive deriving (Show, Eq)
      if Help `elem` flags || not (null errors)
-     then putStrLn $ usageInfo "main [flags]\nInteractive Ultimate Tic-Tac-Toe app." options
-     else if Win `elem` flags
-     then do let depth = if (Depth `elem` flags) then Just $ head inputs else Nothing
-             putBestMove game (Verbose `elem` flags) depth
-     else putStrLn "ELSE"
+     then putStrLn $ usageInfo "Interactive Ultimate Tic-Tac-Toe app." options ++ "\nThe coordinates for the board are as follows:\n[(1,1)][(2,1)][(3,1)]\n[(1,2)][(2,2)][(3,2)]\n[(1,3)][(2,3)][(3,3)]"
+     else do let file = head inputs
+             game <- loadGame file
+             if null flags || flags == [Verbose]
+             then putBestMove game verbose (Just 5)
+             else if Win `elem` flags
+             then do putBestMove game verbose Nothing
+             else if not $ depth == Nothing
+             then putBestMove game verbose (getDepth flags)
+             else case move of
+                    Nothing -> putStrLn ""
+                    Just smth -> (readMove smth)
+if not $ move == Nothing
+             then 
      -- game <- loadGame file
      -- putBestMove game
 
+getDepth :: [Flag] -> Maybe Int
+getDepth [] = Nothing
+getDepth (Depth x:fs) = read x
+getDepth (f:fs) = getDepth fs
+
+getMove :: [Flag] -> Maybe BigMove
+getMove [] = Nothing
+getMove (Move x:fs) = read x
+{-
+readMove :: String -> BigMove
+readMove (x:xs) = case x of
+  '(' -> 
+-}
 
 
