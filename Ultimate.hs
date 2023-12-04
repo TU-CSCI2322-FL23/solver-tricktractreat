@@ -14,12 +14,15 @@ type GameState = (Player, Maybe Coord, [[SubBoard]])
 updateGameState :: GameState -> BigMove -> Maybe GameState
 updateGameState (p, subBoard, boards) move@(outer, inner) =
   if valid
-  then let finished = not $ isInProgress $ fromJust $ findSubBoard inner boards -- fromJust is safe bc coords are superficially valid
-           nextMove = if finished then Nothing else Just inner
-           nextBoard = changeBoard outer inner p boards
+  then let nextBoard = changeBoard outer inner p boards
        in case nextBoard of
-         Nothing -> Nothing
-         Just board -> Just (opponent p, nextMove, board)
+            Nothing -> Nothing
+            Just board -> let sb = fromJust $ findSubBoard inner board 
+                              -- board is the updated board
+                              -- fromJust is safe bc coords are superficially valid
+                              finished = (not $ isInProgress $ sb)
+                              nextMove = if finished then Nothing else Just inner
+                          in Just (opponent p, nextMove, board)
   else Nothing
   where valid = case subBoard of
                   Nothing -> checkBigMove move outer
@@ -233,7 +236,7 @@ intToWin i = case i of
   1 -> Champ X
   _ -> Tie
 
-
+{-
 -- return maybe bigmove
 bestMove :: GameState -> Maybe BigMove
 bestMove gs@(player, move, board) = 
@@ -258,7 +261,7 @@ bestMove gs@(player, move, board) =
 
 -- anyWinningMoves :: GameState -> Bool
 -- anyWinningMoves gs = 
-
+-}
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
   let showTurn = "It is " ++ show player ++ "'s turn."
