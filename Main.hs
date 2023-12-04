@@ -14,7 +14,7 @@ options :: [OptDescr Flag]
 options = [Option ['h'] ["help"] (NoArg Help) "Print usage information and exit.",
            Option ['w'] ["winner"] (NoArg Win) "Prints the best move with no cut-off depth.",
            Option ['d'] ["depth"] (ReqArg Depth "<num>") "Prints the best move with a specified cut-off depth.",
-           Option ['m'] ["move"] (ReqArg Move "<move>") "Makes the given move and prints the resulting board. Moves are two coordinates, first for the subboard and second for the square on the subboard.",
+           Option ['m'] ["move"] (ReqArg Move "<move>") "Makes the given move and prints the resulting board. Moves are two coordinates, entered in the following format: (a,b)(c,d).",
            Option ['v'] ["verbose"] (NoArg Verbose) "Prints more detail (for flags that print moves, using this flag will output the move and a description and for flags that print the next game state, this flag will print the board visually as well."]
 
 
@@ -91,7 +91,7 @@ putMove game verbose move =
                         (Nothing, _) -> "invalid move entered"
                         (Just smth, True) -> prettyPrint smth
                         (Just smth, False) -> show smth
-         putStrLn $ "The move entered results in the following game state:\n" ++ gameStr
+     putStrLn $ "The move entered results in the following game state:\n" ++ gameStr
 
 main :: IO ()
 -- reads a file name from standard input or the arguments, loads the game, and prints the best move
@@ -107,18 +107,20 @@ main =
      else do let file = head inputs
              game <- loadGame file
              if null flags || flags == [Verbose]
-             then putBestMove game verbose (Just 5)
+             then putBestMove game verbose (Just 5) -- default behavior
+             else if Interactive `elem` flags
+             then do play game verbose (getDepth flags)
              else if Win `elem` flags
              then do putBestMove game verbose Nothing
-             else if not $ depth == Nothing
+             else if depth /= Nothing
              then putBestMove game verbose (getDepth flags)
              else case move of
+                    Just smth -> putMove game verbose smth
                     Nothing -> putStrLn ""
-                    Just smth -> (readMove smth)
-if not $ move == Nothing
-             then 
-     -- game <- loadGame file
-     -- putBestMove game
+
+play :: GameState -> Bool -> Maybe Int -> IO ()
+play game verbose depth = 
+
 
 getDepth :: [Flag] -> Maybe Int
 getDepth [] = Nothing
@@ -127,11 +129,22 @@ getDepth (f:fs) = getDepth fs
 
 getMove :: [Flag] -> Maybe BigMove
 getMove [] = Nothing
-getMove (Move x:fs) = read x
-{-
-readMove :: String -> BigMove
-readMove (x:xs) = case x of
-  '(' -> 
--}
+getMove (Move x:fs) = readMove x
+
+readMove :: String -> Maybe BigMove
+readMove str = recouple ints
+  where list = filter (\x -> x /= '(' && x /= ')' && x /= ',') str
+        ints = toInt list
+
+toInt :: String -> [Int]
+toInt lst = map digitToInt lst
+
+recouple :: [Int] -> Maybe BigMove
+recouple lst =
+  case (a, b) of
+    ([x, y], [a, b]) -> Just ((x, y), (a, b))
+    _ -> Nothing            
+  where (a, b) = splitAt 2 lst
+
 
 

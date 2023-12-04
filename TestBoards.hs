@@ -37,8 +37,8 @@ almostFinished :: SubBoard
 almostFinished = InProgress [[Nothing, Just O, Just X], [Just X, Nothing, Just O], [Just O, Just X, Just X]]
 
 nearlyDoneTest :: GameState
-nearlyDoneTest = (X, Just (3,2), [
-    [Finished (Champ X), Finished (Champ O), Finished (Champ O)],
+nearlyDoneTest = (X, Just (2,2), [
+    [Finished (Champ X), Finished (Champ O), almostFinished],
     [Finished (Champ O), almostFinished,     Finished (Champ X)],
     [Finished (Champ O), Finished (Champ O), Finished (Champ X)]])
 
