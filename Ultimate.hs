@@ -199,21 +199,27 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 
 --[] = Finished Tie
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
+possibleMoves :: GameState -> [BigMove]
+possibleMoves (_, Just (x,y), _) = 
+  [((x,y),(a,b)) | a <- [1..3], b <- [1..3]]
+
+possibleMoves (_, Nothing, _) = 
+  [((x,y), (a,b)) | x <- [1..3], y <- [1..3], a <- [1..3], b <- [1..3]]
 
 whoMightWin :: Int -> GameState -> Maybe Winner
-whoMightWin depth gs@(p, sb, sbs) = if depth < 0 then Nothing else case depth of
-  0 -> winnerB gs
-  1 -> let
-    pw = map WinnerB $ catMaybes[updateGameState gs m | m <- moves]
-    in if pw == [] then Nothing else if (Champ p) `elem` pw then Just (Champ p) else Just Tie 
-  _ -> let
-       wgs = winnerB gs
-       moves = possibleMoves gs
-       pw = map winnerB $ [updateGameState gs m | m <- lm]
-       in if not $ null wgs then fromJust wgs 
+whoMightWin 0 = winnerB gs
+whoMightWin 1 = let
+  moves = possibleMoves gs
+  pw = map winnerB $ catMaybes[updateGameState gs m | m <- moves]
+  in if pw == [] then Nothing else if Just (Champ p) `elem` pw then Just (Champ p) else Just Tie 
+whoMightWin depth gs@(p, sb, sbs) = let
+      wgs = winnerB gs
+      moves = possibleMoves gs
+      pw = map winnerB $ (catMaybes[updateGameState gs m | m <- moves])
+      in if not $ null wgs then wgs 
           else case ((catMaybes pw), p) of
-               ([], X) -> intToWin (maximum(map playerMinMax[whoMightWin (depth-1) (updateGameState gs m) | m <- moves]))
-               ([], O) -> intToWin (minimum(map playerMinMax[whoMightWin (depth-1) (updateGameState gs m) | m <- moves]))
+               ([], X) -> maybeIntToWin (maximum(map maybeWinnerMinMax $ [whoMightWin (depth-1) (fromJust (updateGameState gs m)) | m <- moves]))
+               ([], O) -> maybeIntToWin (minimum(map maybeWinnerMinMax $ [whoMightWin (depth-1) (fromJust (updateGameState gs m)) | m <- moves]))
                (arb, _) -> Just (head arb)
 
 whoWillWin :: GameState -> Winner
@@ -233,6 +239,16 @@ playerMinMax p = case p of
   Champ X -> 1
   Champ O -> -1
   Tie -> 0
+
+maybeWinnerMinMax :: Maybe Winner -> Maybe Int
+maybeWinnerMinMax w = case w of
+  Nothing -> Nothing
+  Just x -> Just (playerMinMax x)
+
+maybeIntToWin :: Maybe Int -> Maybe Winner
+maybeIntToWin i = case i of 
+  Nothing -> Nothing
+  Just x -> Just (intToWin x)
 
 intToWin :: Int -> Winner
 intToWin i = case i of
