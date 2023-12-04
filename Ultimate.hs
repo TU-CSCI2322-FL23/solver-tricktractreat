@@ -25,6 +25,7 @@ updateGameState (p, subBoard, boards) move@(outer, inner) =
                   Nothing -> checkBigMove move outer
                   Just sb -> checkBigMove move sb
 
+opponent :: Player -> Player
 opponent X = O
 opponent O = X
 
@@ -85,7 +86,7 @@ findLegalMoves (player, Just subCoords, board) =
 -- When no next coord is specified, finds all in progress boards and returns all legal moves
 findLegalMoves (player, Nothing, board) = 
   let labeledBoards = concat $ [labelRow x row | (x,row) <- zip [1..] board]
-      labelRow x row  = [((x,y), sb) | (y,sb) <- zip [1..] row]
+      labelRow x row  = [((y,x), sb) | (y,sb) <- zip [1..] row]
   in concat [allPairs (x,y) (openSpaces sb) | ((x,y), sb) <- labeledBoards]
 
 -- Finds a sub board given a coord. Isolates row of boards given y coord, then picks the right one based on x coord. 
@@ -109,8 +110,11 @@ findNothingIdx row = [j | (j, elem) <- zip [1..] row, elem == Nothing]
 
 -- openSpaces :: [[Maybe Player]] -> [Coord] 
 openSpaces :: SubBoard -> [Coord] 
-openSpaces (InProgress board) = concat [allPairs i (findNothingIdx row) | (i,row) <- zip [1..] board]
+openSpaces (InProgress board) = concat [allPairs2 i (findNothingIdx row) | (i,row) <- zip [1..] board]
 openSpaces _ = []
+
+allPairs2 :: a -> [b] -> [(b,a)]
+allPairs2 single lst = [(lstElem, single) | lstElem <- lst]
 
 allPairs :: a -> [b] -> [(a,b)]
 allPairs single lst = [(single, lstElem) | lstElem <- lst]
@@ -129,7 +133,6 @@ winnerB (p, mc, sbs) =
 hasChamp :: [SubBoard] -> [Maybe Player]
 hasChamp [] = []
 hasChamp (sb:sbs) = [congrad (checkWinner sb)] ++ (hasChamp sbs)
-
 
 congrad :: Maybe Winner -> Maybe Player
 congrad Nothing = Nothing
@@ -191,11 +194,6 @@ checkCol b = checkRow ((transpose b))
 -- checkCol (InProgress((i:x):(a:xs):(o:xxs))) = 
 --   if i /= Nothing && a == i && o == i then i else checkCol (x:xs:xxs)
 
-
---assignCoordinates :: SubBoard -> [(Coord, Maybe Player)]
---assignCoordinates (InProgress lst) = [((x, y), play) | (row, x) <- zip lst [1..], (play, y) <- zip row [1..]]
-
-
 isFull :: [[Maybe Player]] -> Bool
 isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(catMaybes s)==3]==3 then Finished Tie else InProgress p
 
@@ -203,16 +201,22 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
 whoWillWin :: GameState -> Winner
-whoWillWin gs@(p, sb, sbs) = let
-  wgs = winnerB gs
-  moves = possibleMoves gs
-  pw = map winnerB $ catMaybes [updateGameState gs m | m <- moves]
-  in case wgs of
-     Just smth -> smth
-     Nothing -> case ((catMaybes pw), p) of
-                ([], X) -> intToWin (maximum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
-                ([], O) -> intToWin (minimum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
-                (arb, _) -> head arb
+whoWillWin gs@(p, sb, sbs) = 
+  let nextGames = catMaybes [updateGameState gs m | m <- possibleMoves gs]
+      pw = map winnerB nextGames 
+      eWinners = map whoWillWin nextGames
+  in case (winnerB gs, catMaybes pw) of
+      (Just smth, _) -> smth
+      (Nothing, out:outs) -> out
+      (Nothing, []) -> bestFor p eWinners
+
+
+     
+bestFor :: Player -> [Winner] -> Winner
+bestFor p winners 
+  | (Champ p) `elem` winners = (Champ p)  
+  | Tie `elem` winners = Tie    
+  | otherwise = Champ (opponent p)
 
 possibleMoves :: GameState -> [BigMove]
 possibleMoves (_, Just (x,y), _) = 
@@ -221,43 +225,30 @@ possibleMoves (_, Just (x,y), _) =
 possibleMoves (_, Nothing, _) = 
   [((x,y), (a,b)) | x <- [1..3], y <- [1..3], a <- [1..3], b <- [1..3]]
 
-playerMinMax :: Winner -> Int
-playerMinMax p = case p of
-  Champ X -> 1
-  Champ O -> -1
-  Tie -> 0
-
 intToWin :: Int -> Winner
 intToWin i = case i of
   -1 -> Champ O
   1 -> Champ X
   _ -> Tie
 
-
--- return maybe bigmove
 bestMove :: GameState -> Maybe BigMove
-bestMove gs@(player, move, board) = 
+bestMove gs = 
   case winnerB gs of
     Just smth -> Nothing
-    Nothing ->
-      let
-        movesAndResults = map (\x -> (x, updateGameState gs x)) (possibleMoves gs)
-        bestMoves = map (\(move, Just gs) -> (move, whoWillWin gs)) movesAndResults
-      in Just $ fst $ case find (\(m, res) -> res == Champ player) bestMoves of 
-                Just smth -> smth
-                Nothing -> case find (\(m, res) -> res == Tie) bestMoves of
-                            Just smth -> smth
-                            Nothing -> error "aye"
+    Nothing -> Just $ bestMoveHelper gs
 
-    
-    -- case bestMoves of 
+bestMoveHelper :: GameState -> BigMove 
+bestMoveHelper gs@(player, move, board) =
+  let movesAndResults = findValidGameStates $ map (\x -> (x, updateGameState gs x)) (possibleMoves gs)
+      bestMoves = map (\(move, gs) -> (move, whoWillWin gs)) movesAndResults
+  in fst $ case find (\(m, res) -> res == Champ player) bestMoves of 
+      Just smth -> smth
+      Nothing -> case find (\(m, res) -> res == Tie) bestMoves of
+                  Just smth -> smth
+                  Nothing -> head bestMoves --no move that can result in a win or tie, just move randomly
 
-    --   any (\(m, res) -> res == Champ player) bestMoves -> 
-    --   any (\(m, res) -> res == Tie) bestMoves -> find (\(m, res) -> res = Champ player) bestMove
-    -- [move | (move, winner) <- bestMoves, winner == Champ player]
-
--- anyWinningMoves :: GameState -> Bool
--- anyWinningMoves gs = 
+findValidGameStates :: [(BigMove, Maybe GameState)] -> [(BigMove, GameState)]
+findValidGameStates lst = [(move, maybeState) | (move, Just maybeState) <- lst]
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =

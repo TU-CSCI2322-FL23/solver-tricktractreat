@@ -32,8 +32,8 @@ defaultGame = (X, Just (1, 1), board)
 showGame :: GameState -> String
 showGame game = "Show!!"
 
-bestMove :: GameState -> Maybe BigMove
-bestMove game = Just ((1, 1), (1, 1))
+-- bestMove :: GameState -> Maybe BigMove
+-- bestMove game = Just ((1, 1), (1, 1))
 
 whoWillWin game = Champ X
 
