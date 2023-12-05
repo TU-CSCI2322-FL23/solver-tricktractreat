@@ -20,6 +20,7 @@ import Ultimate
 [ ] [ ] [X] | [O] [ ] [X] | [O] [O] [O]
 -}
 
+
 testSubBoard1_1, testSubBoard2_1, testSubBoard3_1, testSubBoard1_2, testSubBoard2_3 :: SubBoard
 testSubBoard1_1 = InProgress [[Just X, Nothing, Just O], [Just O, Just X, Just X], [Nothing, Nothing, Just O]]
 testSubBoard2_1 = InProgress [[Just O, Nothing, Nothing], [Just X, Just X, Nothing], [Nothing, Nothing, Nothing]]
@@ -32,6 +33,44 @@ testBoard :: GameState
 testBoard = (X, Just (2, 3), [[testSubBoard1_1, testSubBoard2_1, testSubBoard3_1],
                               [testSubBoard1_2, Finished (Champ X), Finished (Champ O)],
                               [Finished (Champ X), testSubBoard2_3, Finished (Champ O)]])
+
+almostFinished :: SubBoard
+almostFinished = InProgress [[Nothing, Just O, Just X], [Just X, Nothing, Just O], [Just O, Just X, Just X]]
+-- almostFinished2 = InProgress [[Just X, Nothing, Just O],[Nothing, Just O, Just X], [Just O, Nothing, Nothing]]
+-- almostFinished = InProgress [[Nothing, Nothing, Nothing], [Nothing, Nothing, Nothing], [Nothing, Nothing, Nothing]]
+
+nearlyDoneTest :: GameState
+nearlyDoneTest = (O, Nothing, [
+    [Finished (Champ X), Finished (Champ O), almostFinished],
+    [almostFinished,     Finished (Champ X), Finished (Champ X)],
+    [almostFinished, Finished (Champ O), almostFinished]])
+
+
+emptyRow :: [Maybe Player]
+emptyRow = [Nothing, Nothing, Nothing]
+emptySubBoard = InProgress $ replicate 3 emptyRow 
+emptyGameBoardRow = replicate 3 emptySubBoard
+emptyGameBoard = replicate 3 emptyGameBoardRow
+
+emptyGameState = (O, Nothing, emptyGameBoard)
+
+tieGameBoard :: [[SubBoard]]
+tieGameBoard = [[Finished (Champ O), Finished (Champ O), Finished (Champ X)], 
+                [Finished (Champ X), Finished (Champ X), Finished (Champ O)],
+                [Finished (Champ O), Finished (Champ X), Finished (Champ X)]]
+
+tieGameState = (X, Nothing, tieGameBoard)
+
+classGame1_1 = InProgress [[Just O, Just X, Just X], [Just X, Nothing, Just O], [Nothing, Nothing, Just X]]
+classGame2_1 = InProgress [[Just O, Just X, Nothing], [Just X, Just O, Nothing], [Just X, Nothing, Nothing]]
+classGame3_2 = InProgress [[Nothing, Nothing, Nothing], [Nothing, Nothing, Nothing], [Just O, Just X, Just X]]
+testUpdateGameStateBoard :: [[SubBoard]]
+testUpdateGameStateBoard = [[classGame1_1, classGame2_1, Finished (Champ O)],
+                            [Finished (Champ O), Finished (Champ X), Finished (Champ X)],
+                            [Finished (Champ O), Finished (Champ X), Finished (Champ O)]]
+
+testUpdateGameState :: GameState
+testUpdateGameState = (X, Just (1,1), testUpdateGameStateBoard)
 
 textRep :: String
 textRep = "X\n(2,3)\nX_O OXX __O,O__ XX_ ___,XO_ ___ OO_|_XX _O_ ___,X,O|X,___ ___ O_X,O"
