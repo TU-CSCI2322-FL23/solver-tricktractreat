@@ -206,16 +206,20 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
 whoWillWin :: GameState -> Winner
-whoWillWin gs@(p, sb, sbs) = let
-  wgs = winnerB gs
-  moves = possibleMoves gs
-  pw = map winnerB $ catMaybes [updateGameState gs m | m <- moves]
-  in case wgs of
-     Just smth -> smth
-     Nothing -> case ((catMaybes pw), p) of
-                ([], X) -> intToWin (maximum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
-                ([], O) -> intToWin (minimum(map playerMinMax $ map whoWillWin (catMaybes [(updateGameState gs m) | m <- moves])))
-                (arb, _) -> head arb
+whoWillWin gs@(p, sb, sbs) = 
+  let nextGames = catMaybes [updateGameState gs m | m <- possibleMoves gs]
+      pw = map winnerB nextGames 
+      eWinners = map whoWillWin nextGames
+  in case (winnerB gs, catMaybes pw) of
+      (Just smth, _) -> smth
+      (Nothing, out:outs) -> out
+      (Nothing, []) -> bestFor p eWinners
+
+bestFor :: Player -> [Winner] -> Winner
+bestFor p winners 
+  | (Champ p) `elem` winners = (Champ p)  
+  | Tie `elem` winners = Tie    
+  | otherwise = Champ (opponent p)
 
 possibleMoves :: GameState -> [BigMove]
 possibleMoves (_, Just (x,y), _) = 

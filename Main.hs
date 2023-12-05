@@ -108,8 +108,8 @@ main =
              game <- loadGame file
              if null flags || flags == [Verbose]
              then putBestMove game verbose (Just 5) -- default behavior
-             else if Interactive `elem` flags
-             then do play game verbose (getDepth flags)
+             --else if Interactive `elem` flags
+             --then do play game verbose (getDepth flags)
              else if Win `elem` flags
              then do putBestMove game verbose Nothing
              else if depth /= Nothing
@@ -118,9 +118,10 @@ main =
                     Just smth -> putMove game verbose smth
                     Nothing -> putStrLn ""
 
+{-
 play :: GameState -> Bool -> Maybe Int -> IO ()
 play game verbose depth = 
-
+-}
 
 getDepth :: [Flag] -> Maybe Int
 getDepth [] = Nothing
