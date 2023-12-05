@@ -73,4 +73,4 @@ testUpdateGameState :: GameState
 testUpdateGameState = (X, Just (1,1), testUpdateGameStateBoard)
 
 textRep :: String
-textRep = "Player\nCoord\nX_OOXX__O,O__XX____,XO____OO_|_XX_O____,X,O|X,______O_X,O"
+textRep = "X\n(2,3)\nX_O OXX __O,O__ XX_ ___,XO_ ___ OO_|_XX _O_ ___,X,O|X,___ ___ O_X,O"

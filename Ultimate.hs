@@ -1,6 +1,8 @@
 module Ultimate where
 import Data.Maybe
 import Data.List
+import Data.List.Split
+import Data.Char (digitToInt)
 import Debug.Trace
 
 data Player = X | O deriving (Show, Eq)
@@ -238,6 +240,54 @@ bestMoveHelper gs@(player, move, board) =
 
 findValidGameStates :: [(BigMove, Maybe GameState)] -> [(BigMove, GameState)]
 findValidGameStates lst = [(move, maybeState) | (move, Just maybeState) <- lst]
+
+readGame :: String -> GameState
+readGame text =
+  let [player, next, board] = lines text
+      bigRows = splitOn "|" board
+      subBoards = map (splitOn ",") bigRows
+      smallRows = map (map words) subBoards
+      -- oneLine2 = map (map words . splitOn ",") (splitOn "|" board)
+
+      charToPlayer c
+        | c == 'X' = Just X
+        | c == 'O' = Just O
+        | c == '_' = Nothing
+        | otherwise = error "Encounterd character other than 'X', 'O', or '_', in subboards, text representation likely corrupted."
+
+      readSmallRow = map charToPlayer
+
+      readSubBoard lst@[_,_,_] = InProgress (map readSmallRow lst)
+      readSubBoard [p]
+        | p == "T"  = Finished Tie
+        | p == "X"  = Finished (Champ X)
+        | p == "O"  = Finished (Champ O)
+        | otherwise = error "Invalid singleton subboard (string other than \"X\", \"O\", or \"T\")"
+      readSubBoard _ = error "Subboard invalid length"
+
+      readPlayer p
+        | p == "X" = X
+        | p == "O" = O
+        | otherwise = error "Invalid player's turn"
+                    
+      readNext "(0,0)" = Nothing
+      readNext ['(', x, ',', y, ')'] = Just (digitToInt x, digitToInt y)
+      readNext _ = error "Incorrectly formatted Coord in text representation"
+  in (readPlayer player, readNext next, map (map readSubBoard) smallRows)
+
+showGame :: GameState -> String
+showGame (player, next, board) =
+  let showNext (Just coord) = show coord
+      showNext Nothing = "(0,0)"
+
+      showBigRow r = init (concatMap showSubBoard r) ++ "|"
+      showSubBoard (InProgress sb) = init (concatMap showSmallRow sb) ++ ","
+      showSubBoard (Finished (Champ p)) = show p ++ ","
+      showSmallRow r = concatMap showCell r ++ " "
+      showCell (Just p) = show p
+      showCell Nothing = "_"
+
+  in show player ++ "\n" ++ showNext next ++ "\n" ++ init (concatMap showBigRow board)
 
 prettyPrint :: GameState -> String
 prettyPrint (player, next, board) =
