@@ -9,6 +9,7 @@ data SubBoard = InProgress [[Maybe Player]] | Finished Winner deriving (Show, Eq
 type Coord = (Int, Int)
 type BigMove = (Coord, Coord) -- first coord is the location of the SUBBOARD second is for the spot on the subboard
 type GameState = (Player, Maybe Coord, [[SubBoard]])
+type Rating = Int
 
 -- UPDATE GAME STATE (FIXED)
 updateGameState :: GameState -> BigMove -> Maybe GameState
@@ -260,7 +261,6 @@ prettyPrint (player, next, board) =
  in showTurn ++ "\n" ++ showNext next ++ "\n" ++ showBoard board
 
 hline = "------------|-------------|------------"
-
 
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
