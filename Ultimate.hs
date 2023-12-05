@@ -2,6 +2,7 @@ module Ultimate where
 import Data.Maybe
 import Data.List
 import Data.List.Split
+import Data.Char (digitToInt)
 
 data Player = X | O deriving (Show, Eq)
 data Winner = Champ Player | Tie deriving (Show, Eq)
@@ -177,40 +178,52 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 --isFull (s:sb) = if length (catMaybes s) == 3 then isFull sb else sb
 
 readGame :: String -> GameState
-readGame text = let [player, next, board] = lines text
-                    bigRows = splitOn "|" board
-                    subBoards = map (splitOn ",") bigRows
-                    smallRows = map (map words) subBoards
-                    -- oneLine2 = map (map words . splitOn ",") (splitOn "|" board)
+readGame text =
+  let [player, next, board] = lines text
+      bigRows = splitOn "|" board
+      subBoards = map (splitOn ",") bigRows
+      smallRows = map (map words) subBoards
+      -- oneLine2 = map (map words . splitOn ",") (splitOn "|" board)
 
-                    charToPlayer c
-                      | c == 'X' = Just X
-                      | c == 'O' = Just O
-                      | c == '_' = Nothing
-                      | otherwise = error "Encounterd character other than 'X', 'O', or '_', in subboards, text representation likely corrupted."
+      charToPlayer c
+        | c == 'X' = Just X
+        | c == 'O' = Just O
+        | c == '_' = Nothing
+        | otherwise = error "Encounterd character other than 'X', 'O', or '_', in subboards, text representation likely corrupted."
 
-                    readSmallRow = map charToPlayer
+      readSmallRow = map charToPlayer
 
-                    readSubBoard lst@[_,_,_] = InProgress (map readSmallRow lst)
-                    readSubBoard [p]
-                      | p == "T"  = Finished Tie
-                      | p == "X"  = Finished (Champ X)
-                      | p == "O"  = Finished (Champ O)
-                      | otherwise = error "Invalid singleton subboard (string other than \"X\", \"O\", or \"T\")"
-                    readSubBoard _ = error "Subboard invalid length"
+      readSubBoard lst@[_,_,_] = InProgress (map readSmallRow lst)
+      readSubBoard [p]
+        | p == "T"  = Finished Tie
+        | p == "X"  = Finished (Champ X)
+        | p == "O"  = Finished (Champ O)
+        | otherwise = error "Invalid singleton subboard (string other than \"X\", \"O\", or \"T\")"
+      readSubBoard _ = error "Subboard invalid length"
 
-                    readPlayer p
-                      | p == "X" = X
-                      | p == "O" = O
-                      | otherwise = error "Invalid player's turn"
+      readPlayer p
+        | p == "X" = X
+        | p == "O" = O
+        | otherwise = error "Invalid player's turn"
                     
-                    readNext str = Just (0, 0)
-                    -- map (map readSubBoard) smallRows
-                in (readPlayer player, readNext next, map (map readSubBoard) smallRows)
+      readNext "(0,0)" = Nothing
+      readNext ['(', x, ',', y, ')'] = Just (digitToInt x, digitToInt y)
+      readNext _ = error "Incorrectly formatted Coord in text representation"
+  in (readPlayer player, readNext next, map (map readSubBoard) smallRows)
 
 showGame :: GameState -> String
-showGame (player, next, board) = undefined
-  -- let showTurn = 
+showGame (player, next, board) =
+  let showNext (Just coord) = show coord
+      showNext Nothing = "(0,0)"
+
+      showBigRow r = init (concatMap showSubBoard r) ++ "|"
+      showSubBoard (InProgress sb) = init (concatMap showSmallRow sb) ++ ","
+      showSubBoard (Finished (Champ p)) = show p ++ ","
+      showSmallRow r = concatMap showCell r ++ " "
+      showCell (Just p) = show p
+      showCell Nothing = "_"
+
+  in show player ++ "\n" ++ showNext next ++ "\n" ++ init (concatMap showBigRow board)
 
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
