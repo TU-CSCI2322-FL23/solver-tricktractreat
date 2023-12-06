@@ -196,12 +196,10 @@ isFull (p) = not $ any (==Nothing) (concat p) -- if length[s |s <- p, length(cat
 whoWillWin :: GameState -> Winner
 whoWillWin gs@(p, sb, sbs) = 
   let nextGames = catMaybes [updateGameState gs m | m <- possibleMoves gs]
-      pw = map winnerB nextGames 
       eWinners = map whoWillWin nextGames
-  in case (winnerB gs, catMaybes pw) of
-      (Just smth, _) -> smth
-      (Nothing, out:outs) -> out
-      (Nothing, []) -> bestFor p eWinners
+  in case winnerB gs of
+      Just smth -> smth
+      Nothing -> bestFor p eWinners
 
 bestFor :: Player -> [Winner] -> Winner
 bestFor p winners 
@@ -216,11 +214,24 @@ possibleMoves (_, Just (x,y), _) =
 possibleMoves (_, Nothing, _) = 
   [((x,y), (a,b)) | x <- [1..3], y <- [1..3], a <- [1..3], b <- [1..3]]
 
-intToWin :: Int -> Winner
-intToWin i = case i of
-  -1 -> Champ O
-  1 -> Champ X
-  _ -> Tie
+whoMightWin :: GameState -> Int -> (Rating, Maybe BigMove)
+whoMightWin gs 0 = (rateGame gs, Nothing)
+whoMightWin gs@(p, _, _) depth = 
+  case winnerB gs of
+    Just outcome -> (rateOutcome outcome, Nothing)
+    Nothing -> let 
+               games =  findValidGameStates [(m, updateGameState gs m) | m <-  (possibleMoves gs)]
+               ratings = [(fst $ whoMightWin game (depth-1), Just move) | (move, game) <- games]
+               in traceShow (gs, map fst games, winnerB gs) $ case p of
+                  X -> maximum ratings
+                  O -> minimum ratings
+
+
+
+rateOutcome :: Winner -> Rating
+rateOutcome (Champ X) =  3
+rateOutcome (Champ O) = -3
+rateOutcome Tie       =  0
 
 bestMove :: GameState -> Maybe BigMove
 bestMove gs = 
