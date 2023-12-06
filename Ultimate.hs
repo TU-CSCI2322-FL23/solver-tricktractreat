@@ -222,9 +222,10 @@ whoMightWin gs@(p, _, _) depth =
     Nothing -> let 
                games =  findValidGameStates [(m, updateGameState gs m) | m <-  (possibleMoves gs)]
                ratings = [(fst $ whoMightWin game (depth-1), Just move) | (move, game) <- games]
-               in traceShow (gs, map fst games, winnerB gs) $ case p of
-                  X -> maximum ratings
-                  O -> minimum ratings
+               in --traceShow (gs, map fst games, winnerB gs) $
+                 case p of
+                   X -> maximum ratings
+                   O -> minimum ratings
 
 
 
