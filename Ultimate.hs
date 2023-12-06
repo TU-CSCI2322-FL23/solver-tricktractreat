@@ -262,6 +262,51 @@ prettyPrint (player, next, board) =
 
 hline = "------------|-------------|------------"
 
+-- gives a rating from -3 to 3 (3 is a win for X and -3 is a win for O)
+
+rateGame :: GameState -> Rating
+rateGame gs@(p, next, board) = if (abs min) > max then min else if (abs min) == max then 0 else max
+  where b = flatten board
+        ratingsLst = (ratingRow b) ++ (ratingCol b) ++ (ratingDia b)
+        max = maximum ratingsLst
+        min = minimum ratingsLst
+
+
+flatten :: [[SubBoard]] -> [[Maybe Winner]]
+flatten board = map flattenRow board
+  where flattenRow :: [SubBoard] -> [Maybe Winner]
+        flattenRow row = map flattenSB row 
+          where flattenSB :: SubBoard -> Maybe Winner
+                flattenSB sb = case sb of
+                                 InProgress _ -> Nothing
+                                 Finished x -> Just x
+
+ratingRow :: [[Maybe Winner]] -> [Rating]
+ratingRow board = map (\x -> count (catMaybes x)) board
+        --if (abs mini) > maxi then mini else if (abs mini) == maxi then 0 else m
+        --maxi = maximum lst
+        --mini = minimum lst
+
+ratingCol :: [[Maybe Winner]] -> [Rating]
+ratingCol board = ratingRow (transpose board)
+
+ratingDia :: [[Maybe Winner]] -> [Rating]
+ratingDia board = [ratingBackDia board, ratingForDia board]
+  where ratingBackDia board@[row1, row2, row3] = count (catMaybes [fst, snd, thrd])
+          where fst = head row1
+                snd = head (tail row2)
+                thrd = last row3
+        ratingForDia board = ratingBackDia (transpose board)
+
+count :: [Winner] -> Rating
+count lst =
+  if rawTie == 0
+  then if rawO == 0 then rawX else if rawX == 0 then -rawO else 0 -- 0 if obstructed
+  else 0
+  where rawX = length $ filter (==(Champ X)) lst
+        rawO = length $ filter (==(Champ O)) lst
+        rawTie = length $ filter (==(Tie)) lst
+
 {-
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
 [ ] [ ] [ ] | [ ] [ ] [ ] | [ ] [ ] [ ]
