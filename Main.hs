@@ -8,7 +8,7 @@ import Debug.Trace
 import System.Environment
 import System.Console.GetOpt
 
-data Flag = Win | Depth String | Help | Move String | Verbose | Interactive deriving (Show, Eq)
+data Flag = Win | Depth String | Help | Move String | Verbose deriving (Show, Eq)
 
 options :: [OptDescr Flag]
 options = [Option ['h'] ["help"] (NoArg Help) "Print usage information and exit.",
@@ -16,24 +16,6 @@ options = [Option ['h'] ["help"] (NoArg Help) "Print usage information and exit.
            Option ['d'] ["depth"] (ReqArg Depth "<num>") "Prints the best move with a specified cut-off depth.",
            Option ['m'] ["move"] (ReqArg Move "<move>") "Makes the given move and prints the resulting board. Moves are two coordinates, entered in the following format: (a,b)(c,d).",
            Option ['v'] ["verbose"] (NoArg Verbose) "Prints more detail (for flags that print moves, using this flag will output the move and a description and for flags that print the next game state, this flag will print the board visually as well."]
-
-
--- dummy functions, required for the IO functions to work
-readGame :: String -> GameState
-readGame string = defaultGame
-
-row = [Just X, Just X, Just X]
-diffRow = [Nothing, Just X, Just X]
-sb = InProgress [diffRow, row, row]
-bRow = [sb, sb, sb]
-board = [bRow, bRow, bRow]
-defaultGame = (X, Just (1, 1), board)
-
-showGame :: GameState -> String
-showGame game = "Show!!"
-
--- bestMove :: GameState -> Maybe BigMove
--- bestMove game = Just ((1, 1), (1, 1))
 
 writeGame :: GameState -> FilePath -> IO ()
 writeGame game file =
@@ -45,12 +27,6 @@ loadGame file =
      let gameState = readGame contents
      return gameState
 
-whoMightWin :: GameState -> Int -> Maybe Winner
-whoMightWin game depth = Just (Champ X)
-
-boundedBestMove :: GameState -> Int -> Maybe BigMove
-boundedBestMove game depth = Just ((1, 1), (1, 1))
-
 --
 
 putBestMove :: GameState -> Bool -> Maybe Int -> IO ()
@@ -59,28 +35,34 @@ putBestMove :: GameState -> Bool -> Maybe Int -> IO ()
 putBestMove game verbose depth =
   do let nextMove = case depth of
                       Nothing -> bestMove game
-                      Just d -> boundedBestMove game d
+                      Just d -> snd (whoMightWin game d)
          nextGame = case nextMove of
                       Just smth -> updateGameState game smth
                       Nothing -> Nothing
          gameStr = case (nextGame, verbose) of
-                     (Nothing, _) -> "no best move"
+                     (Nothing, _) -> "no next game, since someone has already won."
                      (Just smth, True) -> prettyPrint smth
                      (Just smth, False) -> show smth
      putStr $ "The best move is " ++ show nextMove
      if verbose
      then do let winner :: Maybe Winner
                  winner = case nextGame of
-                            Nothing -> Nothing
+                            Nothing -> winnerB game -- case where game is already won
                             Just ng -> case depth of
                                          Nothing -> Just $ whoWillWin ng
-                                         Just smth -> whoMightWin ng smth 
+                                         Just smth ->
+                                           if maybe > 0
+                                           then Just $ Champ X
+                                           else if maybe < 0
+                                           then Just $ Champ O
+                                           else Just $ Tie
+                                             where maybe = fst $ whoMightWin ng smth
                  winnerStr = case winner of
-                               Just (Champ X) -> "win for X"
-                               Just (Champ O) -> "win for O"
-                               Just Tie -> "tie"
-                               Nothing -> "No moves, no winner."
-             putStrLn $ " resulting in a " ++ winnerStr
+                               Just (Champ X) -> " win for X"
+                               Just (Champ O) -> " win for O"
+                               Just Tie -> " tie"
+                               Nothing -> "n error." --should not occur, since winner being Nothing means the game is not yet won (but for next game to be nothing, there must be a winner)
+             putStrLn $ " resulting in a" ++ winnerStr
      else do putStr "\n"
      putStr $ "The move results in the following game\n" ++ gameStr ++ "\n"
 
@@ -101,31 +83,21 @@ main =
          verbose = (Verbose `elem` flags)
          depth = getDepth flags
          move = getMove flags
-     -- data Flag = Win | Depth String | Help | Move String | Verbose | Interactive deriving (Show, Eq)
      if Help `elem` flags || not (null errors)
      then putStrLn $ usageInfo "Interactive Ultimate Tic-Tac-Toe app." options ++ "\nThe coordinates for the board are as follows:\n[(1,1)][(2,1)][(3,1)]\n[(1,2)][(2,2)][(3,2)]\n[(1,3)][(2,3)][(3,3)]"
      else do let file = head inputs
              game <- loadGame file
-             if null flags || flags == [Verbose]
-             then putBestMove game verbose (Just 5) -- default behavior
-             --else if Interactive `elem` flags
-             --then do play game verbose (getDepth flags)
-             else if Win `elem` flags
+             if Win `elem` flags
              then do putBestMove game verbose Nothing
              else if depth /= Nothing
              then putBestMove game verbose (getDepth flags)
              else case move of
                     Just smth -> putMove game verbose smth
-                    Nothing -> putStrLn ""
-
-{-
-play :: GameState -> Bool -> Maybe Int -> IO ()
-play game verbose depth = 
--}
+                    Nothing -> putBestMove game verbose (Just 5) -- default behavior
 
 getDepth :: [Flag] -> Maybe Int
 getDepth [] = Nothing
-getDepth (Depth x:fs) = read x
+getDepth (Depth x:fs) = Just (read x :: Int)
 getDepth (f:fs) = getDepth fs
 
 getMove :: [Flag] -> Maybe BigMove
